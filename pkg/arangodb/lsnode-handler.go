@@ -57,7 +57,7 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		glog.Warning("LSNode object is nil")
 		return
 	}
-	k := obj.RouterIP + "_" + obj.RouterID
+	k := obj.RouterIP + "_" + obj.PeerIP
 	r := &LSNode{
 		Key:                 k,
 		ID:                  lsNodeCollectionName + "/" + k,

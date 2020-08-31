@@ -23,6 +23,8 @@ github.com/sbezverk/gobmp v0.0.0-20200827095834-93361485c9a5 h1:wwoJzSQCeY0Ro41k
 github.com/sbezverk/gobmp v0.0.0-20200827095834-93361485c9a5/go.mod h1:k4p544Irl3Lqww+rmzrvF6gbHrPxdc9983GszRTHkRs=
 github.com/sbezverk/gobmp v0.0.0-20200828153525-a4c75c0064d9 h1:qM15mBgTu0diSyXF0EMpmsVCRr8Fl9E+n2OnfL4d/wU=
 github.com/sbezverk/gobmp v0.0.0-20200828153525-a4c75c0064d9/go.mod h1:k4p544Irl3Lqww+rmzrvF6gbHrPxdc9983GszRTHkRs=
+github.com/sbezverk/gobmp v0.0.0-20200831130148-2aba1592ab66 h1:PJtFJ/YLObi9wIGNEa005TfE9TnFM0PE7QJ/KFBiyOg=
+github.com/sbezverk/gobmp v0.0.0-20200831130148-2aba1592ab66/go.mod h1:k4p544Irl3Lqww+rmzrvF6gbHrPxdc9983GszRTHkRs=
 github.com/segmentio/kafka-go v0.3.6 h1:+JauPDvHurc4XSJVGniNwFuv4NmRLr1CxWvhWkRAtXA=
 github.com/segmentio/kafka-go v0.3.6/go.mod h1:8rEphJEczp+yDE/R5vwmaqZgF1wllrl4ioQcNKB8wVA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

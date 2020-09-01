@@ -6,48 +6,12 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
-	"github.com/sbezverk/gobmp/pkg/base"
-	"github.com/sbezverk/gobmp/pkg/bgp"
 	"github.com/sbezverk/gobmp/pkg/message"
-	"github.com/sbezverk/gobmp/pkg/sr"
 )
 
 const (
 	lsPrefixCollectionName = "LSPrefix_Test"
 )
-
-// LSPrefix represents the database record structure for L3VPN Prefix collection
-type LSPrefix struct {
-	Key             string               `json:"_key,omitempty"`
-	ID              string               `json:"_id,omitempty"`
-	Rev             string               `json:"_rev,omitempty"`
-	RouterIP        string               `json:"router_ip,omitempty"`
-	BaseAttributes  *bgp.BaseAttributes  `json:"base_attrs,omitempty"`
-	PeerIP          string               `json:"peer_ip,omitempty"`
-	PeerASN         int32                `json:"peer_asn,omitempty"`
-	Timestamp       string               `json:"timestamp,omitempty"`
-	IGPRouterID     string               `json:"igp_router_id,omitempty"`
-	RouterID        string               `json:"router_id,omitempty"`
-	RoutingID       string               `json:"routing_id,omitempty"`
-	LSID            uint32               `json:"ls_id,omitempty"`
-	ProtocolID      base.ProtoID         `json:"protocol_id,omitempty"`
-	Protocol        string               `json:"protocol,omitempty"`
-	Nexthop         string               `json:"nexthop,omitempty"`
-	LocalNodeHash   string               `json:"local_node_hash,omitempty"`
-	MTID            []uint16             `json:"mt_id,omitempty"`
-	OSPFRouteType   uint8                `json:"ospf_route_type,omitempty"`
-	IGPFlags        uint8                `json:"igp_flags,omitempty"`
-	RouteTag        uint8                `json:"route_tag,omitempty"`
-	ExtRouteTag     uint8                `json:"ext_route_tag,omitempty"`
-	OSPFFwdAddr     string               `json:"ospf_fwd_addr,omitempty"`
-	IGPMetric       uint32               `json:"igp_metric,omitempty"`
-	Prefix          string               `json:"prefix,omitempty"`
-	PrefixLen       int32                `json:"prefix_len,omitempty"`
-	IsPrepolicy     bool                 `json:"isprepolicy"`
-	IsAdjRIBIn      bool                 `json:"is_adj_rib_in"`
-	LSPrefixSID     []*sr.PrefixSIDTLV   `json:"ls_prefix_sid,omitempty"`
-	PrefixAttrFlags base.PrefixAttrFlags `json:"prefix_attr_flags,omitempty"`
-}
 
 func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 	ctx := context.TODO()
@@ -55,8 +19,8 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 		glog.Warning("LSPrefix object is nil")
 		return
 	}
-	k := obj.Prefix + "_" + strconv.Itoa(int(obj.PrefixLen))
-	r := &LSPrefix{
+	k := obj.Prefix + "_" + strconv.Itoa(int(obj.PrefixLen)) + "_" + obj.IGPRouterID
+	r := &message.LSPrefix{
 		Key:             k,
 		ID:              lsPrefixCollectionName + "/" + k,
 		RouterIP:        obj.RouterIP,

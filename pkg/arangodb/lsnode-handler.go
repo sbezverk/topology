@@ -5,51 +5,12 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
-	"github.com/sbezverk/gobmp/pkg/base"
-	"github.com/sbezverk/gobmp/pkg/bgp"
 	"github.com/sbezverk/gobmp/pkg/message"
-	"github.com/sbezverk/gobmp/pkg/sr"
 )
 
 const (
 	lsNodeCollectionName = "LSNode_Test"
 )
-
-// LSNode represents the database record structure for L3VPN Prefix collection
-type LSNode struct {
-	Key                 string              `json:"_key,omitempty"`
-	ID                  string              `json:"_id,omitempty"`
-	Rev                 string              `json:"_rev,omitempty"`
-	Sequence            int                 `json:"sequence,omitempty"`
-	Hash                string              `json:"hash,omitempty"`
-	RouterHash          string              `json:"router_hash,omitempty"`
-	RouterIP            string              `json:"router_ip,omitempty"`
-	BaseAttributes      *bgp.BaseAttributes `json:"base_attrs,omitempty"`
-	PeerHash            string              `json:"peer_hash,omitempty"`
-	PeerIP              string              `json:"peer_ip,omitempty"`
-	PeerASN             int32               `json:"peer_asn,omitempty"`
-	Timestamp           string              `json:"timestamp,omitempty"`
-	IGPRouterID         string              `json:"igp_router_id,omitempty"`
-	RouterID            string              `json:"router_id,omitempty"`
-	RoutingID           string              `json:"routing_id,omitempty"`
-	ASN                 uint32              `json:"asn,omitempty"`
-	LSID                uint32              `json:"ls_id,omitempty"`
-	MTID                []uint16            `json:"mt_id,omitempty"`
-	OSPFAreaID          string              `json:"ospf_area_id,omitempty"`
-	ISISAreaID          string              `json:"isis_area_id,omitempty"`
-	Protocol            string              `json:"protocol,omitempty"`
-	ProtocolID          base.ProtoID        `json:"protocol_id,omitempty"`
-	Flags               uint8               `json:"flags,omitempty"`
-	Nexthop             string              `json:"nexthop,omitempty"`
-	Name                string              `json:"name,omitempty"`
-	SRCapabilities      *sr.Capability      `json:"ls_sr_capabilities,omitempty"`
-	SRAlgorithm         []int               `json:"sr_algorithm,omitempty"`
-	SRLocalBlock        *sr.LocalBlock      `json:"sr_local_block,omitempty"`
-	SRv6CapabilitiesTLV string              `json:"srv6_capabilities_tlv,omitempty"`
-	NodeMSD             string              `json:"node_msd,omitempty"`
-	IsPrepolicy         bool                `json:"isprepolicy"`
-	IsAdjRIBIn          bool                `json:"is_adj_rib_in"`
-}
 
 func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 	ctx := context.TODO()
@@ -58,7 +19,7 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		return
 	}
 	k := obj.RouterIP + "_" + obj.PeerIP
-	r := &LSNode{
+	r := &message.LSNode{
 		Key:                 k,
 		ID:                  lsNodeCollectionName + "/" + k,
 		Sequence:            obj.Sequence,

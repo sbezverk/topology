@@ -19,6 +19,9 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		return
 	}
 	k := obj.RouterIP + "_" + obj.PeerIP
+	// Locking the key "k" to prevent race over the same key value
+	a.lckr.Lock(k)
+	defer a.lckr.Unlock(k)
 	r := &message.LSNode{
 		Key:                 k,
 		ID:                  lsNodeCollectionName + "/" + k,
@@ -33,7 +36,6 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		Timestamp:           obj.Timestamp,
 		IGPRouterID:         obj.IGPRouterID,
 		RouterID:            obj.RouterID,
-		RoutingID:           obj.RoutingID,
 		ASN:                 obj.ASN,
 		LSID:                obj.LSID,
 		MTID:                obj.MTID,
@@ -51,6 +53,7 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		NodeMSD:             obj.NodeMSD,
 		IsPrepolicy:         obj.IsPrepolicy,
 		IsAdjRIBIn:          obj.IsAdjRIBIn,
+		FlexAlgoDefinition:  obj.FlexAlgoDefinition,
 	}
 
 	var prc driver.Collection

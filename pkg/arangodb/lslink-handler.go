@@ -19,6 +19,9 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		return
 	}
 	k := obj.InterfaceIP + "_" + obj.NeighborIP
+	// Locking the key "k" to prevent race over the same key value
+	a.lckr.Lock(k)
+	defer a.lckr.Unlock(k)
 	r := &message.LSLink{
 		Key:                   k,
 		ID:                    lsLinkCollectionName + "/" + k,
@@ -30,7 +33,6 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		Timestamp:             obj.Timestamp,
 		IGPRouterID:           obj.IGPRouterID,
 		RouterID:              obj.RouterID,
-		RoutingID:             obj.RoutingID,
 		LSID:                  obj.LSID,
 		Protocol:              obj.Protocol,
 		Nexthop:               obj.Nexthop,

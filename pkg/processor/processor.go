@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/bmp"
 	"github.com/sbezverk/gobmp/pkg/message"
+	"github.com/sbezverk/gobmp/pkg/tools"
 	"github.com/sbezverk/topology/pkg/dbclient"
 )
 
@@ -108,7 +109,7 @@ func (p *processor) procWorker(m *queueMsg) {
 	case bmp.LSNodeMsg:
 		var o message.LSNode
 		if err := json.Unmarshal(m.msgData, &o); err != nil {
-			glog.Errorf("failed to unmarshal message of type %d with error: %+v", m.msgType, err)
+			glog.Errorf("failed to unmarshal message data: %s of type %d with error: %+v", tools.MessageHex(m.msgData), m.msgType, err)
 			return
 		}
 		if err := p.db.StoreMessage(m.msgType, &o); err != nil {

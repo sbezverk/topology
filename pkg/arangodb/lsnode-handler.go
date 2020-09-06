@@ -29,7 +29,6 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		Hash:                obj.Hash,
 		RouterHash:          obj.RouterHash,
 		RouterIP:            obj.RouterIP,
-		BaseAttributes:      obj.BaseAttributes,
 		PeerHash:            obj.PeerHash,
 		PeerIP:              obj.PeerIP,
 		PeerASN:             obj.PeerASN,
@@ -43,8 +42,7 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 		ISISAreaID:          obj.ISISAreaID,
 		Protocol:            obj.Protocol,
 		ProtocolID:          obj.ProtocolID,
-		Flags:               obj.Flags,
-		Nexthop:             obj.Nexthop,
+		NodeFlags:           obj.NodeFlags,
 		Name:                obj.Name,
 		SRCapabilities:      obj.SRCapabilities,
 		SRAlgorithm:         obj.SRAlgorithm,
@@ -59,7 +57,7 @@ func (a *arangoDB) lsnodeHandler(obj *message.LSNode) {
 	var prc driver.Collection
 	var err error
 	if prc, err = a.ensureCollection(lsNodeCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", a.l3vpnPrefix, err)
+		glog.Errorf("failed to ensure for collection %s with error: %+v", lsNodeCollectionName, err)
 		return
 	}
 	ok, err := prc.DocumentExists(ctx, k)

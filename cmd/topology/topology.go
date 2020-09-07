@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -34,6 +35,7 @@ var (
 )
 
 func init() {
+	runtime.GOMAXPROCS(1)
 	flag.StringVar(&msgSrvAddr, "message-server", "", "URL to the messages supplying server")
 	flag.StringVar(&dbSrvAddr, "database-server", "", "{dns name}:port or X.X.X.X:port of the graph database")
 	flag.StringVar(&mockDB, "mock-database", "false", "when set to true, received messages are stored in the file")

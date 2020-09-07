@@ -2,6 +2,7 @@ package arangodb
 
 import (
 	"context"
+	"strings"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -18,7 +19,7 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		glog.Warning("LSPrefix object is nil")
 		return
 	}
-	k := obj.InterfaceIP + "_" + obj.NeighborIP
+	k := strings.Join(obj.LocalLinkIP, "_") + "..." + strings.Join(obj.RemoteLinkIP, "_")
 	// Locking the key "k" to prevent race over the same key value
 	a.lckr.Lock(k)
 	defer a.lckr.Unlock(k)
@@ -26,7 +27,6 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		Key:                   k,
 		ID:                    lsLinkCollectionName + "/" + k,
 		RouterIP:              obj.RouterIP,
-		BaseAttributes:        obj.BaseAttributes,
 		PeerHash:              obj.PeerHash,
 		PeerIP:                obj.PeerIP,
 		PeerASN:               obj.PeerASN,
@@ -39,8 +39,8 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		MTID:                  obj.MTID,
 		LocalLinkID:           obj.LocalLinkID,
 		RemoteLinkID:          obj.RemoteLinkID,
-		InterfaceIP:           obj.InterfaceIP,
-		NeighborIP:            obj.NeighborIP,
+		LocalLinkIP:           obj.LocalLinkIP,
+		RemoteLinkIP:          obj.RemoteLinkIP,
 		IGPMetric:             obj.IGPMetric,
 		AdminGroup:            obj.AdminGroup,
 		MaxLinkBW:             obj.MaxLinkBW,
@@ -59,8 +59,6 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		RemoteNodeASN:         obj.RemoteNodeASN,
 		SRv6BGPPeerNodeSID:    obj.SRv6BGPPeerNodeSID,
 		SRv6ENDXSID:           obj.SRv6ENDXSID,
-		IsPrepolicy:           obj.IsPrepolicy,
-		IsAdjRIBIn:            obj.IsAdjRIBIn,
 		LSAdjacencySID:        obj.LSAdjacencySID,
 		LinkMSD:               obj.LinkMSD,
 		UnidirLinkDelay:       obj.UnidirLinkDelay,
@@ -75,7 +73,7 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 	var prc driver.Collection
 	var err error
 	if prc, err = a.ensureCollection(lsLinkCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", a.l3vpnPrefix, err)
+		glog.Errorf("failed to ensure for collection %s with error: %+v", lsLinkCollectionName, err)
 		return
 	}
 	ok, err := prc.DocumentExists(ctx, k)

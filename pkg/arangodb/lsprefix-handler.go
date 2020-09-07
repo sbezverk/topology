@@ -27,7 +27,6 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 		Key:                  k,
 		ID:                   lsPrefixCollectionName + "/" + k,
 		RouterIP:             obj.RouterIP,
-		BaseAttributes:       obj.BaseAttributes,
 		PeerIP:               obj.PeerIP,
 		PeerASN:              obj.PeerASN,
 		Timestamp:            obj.Timestamp,
@@ -41,8 +40,8 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 		MTID:                 obj.MTID,
 		OSPFRouteType:        obj.OSPFRouteType,
 		IGPFlags:             obj.IGPFlags,
-		RouteTag:             obj.RouteTag,
-		ExtRouteTag:          obj.ExtRouteTag,
+		IGPRouteTag:          obj.IGPRouteTag,
+		IGPExtRouteTag:       obj.IGPExtRouteTag,
 		OSPFFwdAddr:          obj.OSPFFwdAddr,
 		IGPMetric:            obj.IGPMetric,
 		Prefix:               obj.Prefix,
@@ -57,7 +56,7 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 	var prc driver.Collection
 	var err error
 	if prc, err = a.ensureCollection(lsPrefixCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", a.l3vpnPrefix, err)
+		glog.Errorf("failed to ensure for collection %s with error: %+v", lsPrefixCollectionName, err)
 		return
 	}
 	ok, err := prc.DocumentExists(ctx, k)

@@ -78,13 +78,13 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		// glog.Infof("Object: %+v", p)
 		// go a.peerChangeHandler(p)
 	case bmp.UnicastPrefixMsg:
-		_, ok := msg.(*message.UnicastPrefix)
+		un, ok := msg.(*message.UnicastPrefix)
 		if !ok {
 			return fmt.Errorf("malformed UnicastPrefix message")
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", un)
-		// go a.unicastPrefixHandler(un)
+		go a.unicastPrefixHandler(un)
 	case bmp.LSLinkMsg:
 		lsl, ok := msg.(*message.LSLink)
 		if !ok {

@@ -15,6 +15,11 @@ import (
 	"github.com/sbezverk/topology/pkg/locker"
 )
 
+const (
+	l3vpnPrefixCollectionName = "L3VPN_Prefix"
+	l3vpnRTCollectionName     = "L3VPN_RT"
+)
+
 var mtx = sync.Mutex{}
 
 // L3VPNPrefix represents the database record structure for L3VPN Prefix collection
@@ -51,7 +56,7 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 	k := obj.VPNRD + "_" + obj.Prefix + "_" + strconv.Itoa(int(obj.PrefixLen))
 	r := &L3VPNPrefix{
 		Key:       k,
-		ID:        a.l3vpnPrefix + "/" + k,
+		ID:        l3vpnPrefixCollectionName + "/" + k,
 		Prefix:    obj.Prefix,
 		PrefixLen: obj.PrefixLen,
 		IsIPv4:    obj.IsIPv4,
@@ -69,12 +74,12 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 	var prc driver.Collection
 	var rtc driver.Collection
 	var err error
-	if prc, err = a.ensureCollection(a.l3vpnPrefix); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", a.l3vpnPrefix, err)
+	if prc, err = a.ensureCollection(l3vpnPrefixCollectionName); err != nil {
+		glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnPrefixCollectionName, err)
 		return
 	}
-	if rtc, err = a.ensureCollection(a.l3vpnRT); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", a.l3vpnRT, err)
+	if rtc, err = a.ensureCollection(l3vpnRTCollectionName); err != nil {
+		glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnRTCollectionName, err)
 		return
 	}
 	ok, err := prc.DocumentExists(ctx, k)

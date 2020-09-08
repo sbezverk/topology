@@ -61,6 +61,7 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		SRv6ENDXSID:           obj.SRv6ENDXSID,
 		LSAdjacencySID:        obj.LSAdjacencySID,
 		LinkMSD:               obj.LinkMSD,
+		AppSpecLinkAttr:       obj.AppSpecLinkAttr,
 		UnidirLinkDelay:       obj.UnidirLinkDelay,
 		UnidirLinkDelayMinMax: obj.UnidirLinkDelayMinMax,
 		UnidirDelayVariation:  obj.UnidirDelayVariation,

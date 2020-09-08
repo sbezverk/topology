@@ -15,13 +15,11 @@ type arangoDB struct {
 	stop chan struct{}
 	dbclient.DB
 	*ArangoConn
-	lckr        locker.Locker
-	l3vpnPrefix string
-	l3vpnRT     string
+	lckr locker.Locker
 }
 
 // NewDBSrvClient returns an instance of a DB server client process
-func NewDBSrvClient(arangoSrv, user, pass, dbname, l3vpnPrefix, l3vpnRT string) (dbclient.Srv, error) {
+func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) {
 	if err := tools.URLAddrValidation(arangoSrv); err != nil {
 		return nil, err
 	}
@@ -35,10 +33,8 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, l3vpnPrefix, l3vpnRT string) 
 		return nil, err
 	}
 	arango := &arangoDB{
-		stop:        make(chan struct{}),
-		lckr:        locker.NewLocker(),
-		l3vpnPrefix: l3vpnPrefix,
-		l3vpnRT:     l3vpnRT,
+		stop: make(chan struct{}),
+		lckr: locker.NewLocker(),
 	}
 	arango.DB = arango
 	arango.ArangoConn = arangoConn

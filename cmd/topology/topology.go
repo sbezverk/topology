@@ -87,7 +87,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !isMockDB {
-		dbSrv, err = arangodb.NewDBSrvClient(dbSrvAddr, dbUser, dbPass, dbName, l3vpnPrefix, l3vpnRT)
+		dbSrv, err = arangodb.NewDBSrvClient(dbSrvAddr, dbUser, dbPass, dbName)
 		if err != nil {
 			glog.Errorf("failed to initialize databse client with error: %+v", err)
 			os.Exit(1)

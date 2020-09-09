@@ -51,6 +51,7 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 		LSPrefixSID:          obj.LSPrefixSID,
 		PrefixAttrFlags:      obj.PrefixAttrFlags,
 		FlexAlgoPrefixMetric: obj.FlexAlgoPrefixMetric,
+		SRv6Locator:          obj.SRv6Locator,
 	}
 
 	var prc driver.Collection

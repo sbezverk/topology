@@ -15,13 +15,11 @@ type arangoDB struct {
 	stop chan struct{}
 	dbclient.DB
 	*ArangoConn
-	lckr        locker.Locker
-	l3vpnPrefix string
-	l3vpnRT     string
+	lckr locker.Locker
 }
 
 // NewDBSrvClient returns an instance of a DB server client process
-func NewDBSrvClient(arangoSrv, user, pass, dbname, l3vpnPrefix, l3vpnRT string) (dbclient.Srv, error) {
+func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) {
 	if err := tools.URLAddrValidation(arangoSrv); err != nil {
 		return nil, err
 	}
@@ -35,10 +33,8 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname, l3vpnPrefix, l3vpnRT string) 
 		return nil, err
 	}
 	arango := &arangoDB{
-		stop:        make(chan struct{}),
-		lckr:        locker.NewLocker(),
-		l3vpnPrefix: l3vpnPrefix,
-		l3vpnRT:     l3vpnRT,
+		stop: make(chan struct{}),
+		lckr: locker.NewLocker(),
 	}
 	arango.DB = arango
 	arango.ArangoConn = arangoConn
@@ -84,7 +80,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", un)
-		go a.unicastPrefixHandler(un)
+		a.unicastPrefixHandler(un)
 	case bmp.LSLinkMsg:
 		lsl, ok := msg.(*message.LSLink)
 		if !ok {
@@ -92,7 +88,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", ln)
-		go a.lslinkHandler(lsl)
+		a.lslinkHandler(lsl)
 	case bmp.LSNodeMsg:
 		lsn, ok := msg.(*message.LSNode)
 		if !ok {
@@ -100,7 +96,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", ln)
-		go a.lsnodeHandler(lsn)
+		a.lsnodeHandler(lsn)
 	case bmp.LSPrefixMsg:
 		lsp, ok := msg.(*message.LSPrefix)
 		if !ok {
@@ -108,14 +104,14 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", *lsp)
-		go a.lsprefixHandler(lsp)
+		a.lsprefixHandler(lsp)
 	case bmp.L3VPNMsg:
 		l3, ok := msg.(*message.L3VPNPrefix)
 		if !ok {
 			return fmt.Errorf("malformed L3VPN message")
 		}
 		// glog.Infof("Object: %+v", *l3)
-		go a.l3vpnHandler(l3)
+		a.l3vpnHandler(l3)
 	}
 
 	return nil

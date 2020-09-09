@@ -10,6 +10,11 @@ import (
 	"github.com/sbezverk/topology/pkg/dbclient"
 )
 
+const (
+	// NumberOfWorkers is maximum number of concurrent go routines created by the processor to process mesages.
+	NumberOfWorkers = 102400
+)
+
 // Messenger defines required methonds of a messaging client
 type Messenger interface {
 	// SendMessage is used by the messanger client to send message to Processor for processing
@@ -74,17 +79,24 @@ func (p *processor) SendMessage(msgType int, msg []byte) {
 }
 
 func (p *processor) msgProcessor() {
+	pool := make(chan struct{}, NumberOfWorkers)
 	for {
 		select {
 		case msg := <-p.queue:
-			go p.procWorker(msg)
+			// Writing to Pool channel to reserve a worker slot
+			pool <- struct{}{}
+			go p.procWorker(msg, pool)
 		case <-p.stop:
 			return
 		}
 	}
 }
 
-func (p *processor) procWorker(m *queueMsg) {
+func (p *processor) procWorker(m *queueMsg, pool chan struct{}) {
+	defer func() {
+		// Reading from Pool channel to release the worker slot
+		<-pool
+	}()
 	switch m.msgType {
 	case bmp.PeerStateChangeMsg:
 		var o message.PeerStateChange

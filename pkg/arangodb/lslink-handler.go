@@ -20,12 +20,16 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		return
 	}
 	var localIP, remoteIP, localID, remoteID string
-	if obj.IsIPv4 {
+	switch obj.MTID {
+	case 0:
 		localIP = "127.0.0.1"
 		remoteIP = "127.0.0.1"
-	} else {
+	case 2:
 		localIP = "::1"
 		remoteIP = "::1"
+	default:
+		localIP = "unknown-mt-id"
+		remoteIP = "unknown-mt-id"
 	}
 	if len(obj.LocalLinkIP) != 0 {
 		localIP = obj.LocalLinkIP[0]
@@ -53,7 +57,6 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		IGPRouterID:           obj.IGPRouterID,
 		RouterID:              obj.RouterID,
 		LSID:                  obj.LSID,
-		IsIPv4:                obj.IsIPv4,
 		Protocol:              obj.Protocol,
 		Nexthop:               obj.Nexthop,
 		MTID:                  obj.MTID,

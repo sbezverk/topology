@@ -2,7 +2,7 @@ package arangodb
 
 import (
 	"context"
-	"strings"
+	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -19,7 +19,26 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		glog.Warning("LSPrefix object is nil")
 		return
 	}
-	k := strings.Join(obj.LocalLinkIP, "_") + "..." + strings.Join(obj.RemoteLinkIP, "_")
+	var localIP, remoteIP, localID, remoteID string
+	if obj.IsIPv4 {
+		localIP = "127.0.0.1"
+		remoteIP = "127.0.0.1"
+	} else {
+		localIP = "::1"
+		remoteIP = "::1"
+	}
+	if len(obj.LocalLinkIP) != 0 {
+		localIP = obj.LocalLinkIP[0]
+	}
+	if len(obj.RemoteLinkIP) != 0 {
+		remoteIP = obj.RemoteLinkIP[0]
+	}
+	localID = strconv.Itoa(int(obj.LocalLinkID))
+	remoteID = strconv.Itoa(int(obj.RemoteLinkID))
+
+	k := obj.IGPRouterID + "_" + localIP + "_" + localID + "_" + obj.RemoteIGPRouterID + "_" + remoteIP + "_" + remoteID
+
+	// k := strings.Join(obj.LocalLinkIP, "_") + "..." + strings.Join(obj.RemoteLinkIP, "_")
 	// Locking the key "k" to prevent race over the same key value
 	a.lckr.Lock(k)
 	defer a.lckr.Unlock(k)
@@ -34,6 +53,7 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 		IGPRouterID:           obj.IGPRouterID,
 		RouterID:              obj.RouterID,
 		LSID:                  obj.LSID,
+		IsIPv4:                obj.IsIPv4,
 		Protocol:              obj.Protocol,
 		Nexthop:               obj.Nexthop,
 		MTID:                  obj.MTID,

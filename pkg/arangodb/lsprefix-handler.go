@@ -33,6 +33,7 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 		IGPRouterID:          obj.IGPRouterID,
 		RouterID:             obj.RouterID,
 		LSID:                 obj.LSID,
+		IsIPv4:               obj.IsIPv4,
 		ProtocolID:           obj.ProtocolID,
 		Protocol:             obj.Protocol,
 		Nexthop:              obj.Nexthop,

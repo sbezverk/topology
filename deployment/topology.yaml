@@ -7,10 +7,10 @@ spec:
       port: 56768
       protocol: TCP
       targetPort: 56768
-    - name: stats 
-      port: 56767
+    - name: stats
+      port: 56769
       protocol: TCP
-      targetPort: 56768
+      targetPort: 56769
   selector:
     app: topology
   type: ClusterIP
@@ -52,7 +52,7 @@ spec:
           imagePullPolicy: Always
           name: topology
           ports:
-            - containerPort: 56767
+            - containerPort: 56769
               protocol: TCP
               name: stats
             - containerPort: 56768

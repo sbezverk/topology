@@ -80,7 +80,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", un)
-		go a.unicastPrefixHandler(un)
+		a.unicastPrefixHandler(un)
 	case bmp.LSLinkMsg:
 		lsl, ok := msg.(*message.LSLink)
 		if !ok {
@@ -88,7 +88,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", ln)
-		go a.lslinkHandler(lsl)
+		a.lslinkHandler(lsl)
 	case bmp.LSNodeMsg:
 		lsn, ok := msg.(*message.LSNode)
 		if !ok {
@@ -96,7 +96,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", ln)
-		go a.lsnodeHandler(lsn)
+		a.lsnodeHandler(lsn)
 	case bmp.LSPrefixMsg:
 		lsp, ok := msg.(*message.LSPrefix)
 		if !ok {
@@ -104,14 +104,14 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		}
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", *lsp)
-		go a.lsprefixHandler(lsp)
+		a.lsprefixHandler(lsp)
 	case bmp.L3VPNMsg:
 		l3, ok := msg.(*message.L3VPNPrefix)
 		if !ok {
 			return fmt.Errorf("malformed L3VPN message")
 		}
 		// glog.Infof("Object: %+v", *l3)
-		go a.l3vpnHandler(l3)
+		a.l3vpnHandler(l3)
 	}
 
 	return nil

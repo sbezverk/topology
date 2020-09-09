@@ -22,16 +22,14 @@ import (
 )
 
 var (
-	msgSrvAddr  string
-	dbSrvAddr   string
-	mockDB      string
-	mockMsg     string
-	dbName      string
-	dbUser      string
-	dbPass      string
-	perfPort    = 56768
-	l3vpnPrefix string
-	l3vpnRT     string
+	msgSrvAddr string
+	dbSrvAddr  string
+	mockDB     string
+	mockMsg    string
+	dbName     string
+	dbUser     string
+	dbPass     string
+	perfPort   = 56768
 )
 
 func init() {
@@ -43,8 +41,6 @@ func init() {
 	flag.StringVar(&dbName, "database-name", "", "DB name")
 	flag.StringVar(&dbUser, "database-user", "", "DB User name")
 	flag.StringVar(&dbPass, "database-pass", "", "DB User's password")
-	flag.StringVar(&l3vpnPrefix, "l3vpn-prefix", "L3VPN_Prefix", "L3VPN Prefix collection name")
-	flag.StringVar(&l3vpnRT, "l3vpn-rt", "L3VPN_RT", "L3VPN RT collection name")
 }
 
 var (

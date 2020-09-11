@@ -105,6 +105,14 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		// Remove after the corresponding handler is added
 		// glog.Infof("Object: %+v", *lsp)
 		a.lsprefixHandler(lsp)
+	case bmp.LSSRv6SIDMsg:
+		srv6sid, ok := msg.(*message.LSSRv6SID)
+		if !ok {
+			return fmt.Errorf("malformed LSPrefix message")
+		}
+		// Remove after the corresponding handler is added
+		// glog.Infof("Object: %+v", *lsp)
+		a.lsSRV6SIDHandler(srv6sid)
 	case bmp.L3VPNMsg:
 		l3, ok := msg.(*message.L3VPNPrefix)
 		if !ok {

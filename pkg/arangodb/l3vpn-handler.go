@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	l3vpnPrefixCollectionName = "L3VPN_Prefix"
-	l3vpnRTCollectionName     = "L3VPN_RT"
+	l3vpnPrefixCollectionName = "L3VPN_Prefix_Test"
+	l3vpnRTCollectionName     = "L3VPN_RT_Test"
 )
 
 var mtx = sync.Mutex{}
@@ -27,6 +27,7 @@ type L3VPNPrefix struct {
 	Key       string          `json:"_key,omitempty"`
 	ID        string          `json:"_id,omitempty"`
 	Rev       string          `json:"_rev,omitempty"`
+	Timestamp string          `json:"timestamp,omitempty"`
 	Prefix    string          `json:"Prefix,omitempty"`
 	PrefixLen int32           `json:"Length,omitempty"`
 	IsIPv4    bool            `json:"IPv4"`
@@ -65,6 +66,7 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 		Labels:    obj.Labels,
 		RD:        obj.VPNRD,
 		ExtComm:   obj.BaseAttributes.ExtCommunityList,
+		Timestamp: obj.Timestamp,
 	}
 
 	if obj.PrefixSID != nil {

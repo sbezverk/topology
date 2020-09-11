@@ -16,17 +16,17 @@ const (
 func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 	ctx := context.TODO()
 	if obj == nil {
-		glog.Warning("LSPrefix object is nil")
+		glog.Warning("LSLink object is nil")
 		return
 	}
 	var localIP, remoteIP, localID, remoteID string
 	switch obj.MTID {
 	case 0:
-		localIP = "127.0.0.1"
-		remoteIP = "127.0.0.1"
+		localIP = "0.0.0.0"
+		remoteIP = "0.0.0.0"
 	case 2:
-		localIP = "::1"
-		remoteIP = "::1"
+		localIP = "::"
+		remoteIP = "::"
 	default:
 		localIP = "unknown-mt-id"
 		remoteIP = "unknown-mt-id"
@@ -39,10 +39,7 @@ func (a *arangoDB) lslinkHandler(obj *message.LSLink) {
 	}
 	localID = strconv.Itoa(int(obj.LocalLinkID))
 	remoteID = strconv.Itoa(int(obj.RemoteLinkID))
-
 	k := obj.IGPRouterID + "_" + localIP + "_" + localID + "_" + obj.RemoteIGPRouterID + "_" + remoteIP + "_" + remoteID
-
-	// k := strings.Join(obj.LocalLinkIP, "_") + "..." + strings.Join(obj.RemoteLinkIP, "_")
 	// Locking the key "k" to prevent race over the same key value
 	a.lckr.Lock(k)
 	defer a.lckr.Unlock(k)

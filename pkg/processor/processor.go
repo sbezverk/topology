@@ -148,6 +148,16 @@ func (p *processor) procWorker(m *queueMsg, pool chan struct{}) {
 			glog.Errorf("failed to store message of type: %d in the database with error: %+v", m.msgType, err)
 			return
 		}
+	case bmp.LSSRv6SIDMsg:
+		var o message.LSSRv6SID
+		if err := json.Unmarshal(m.msgData, &o); err != nil {
+			glog.Errorf("failed to unmarshal message of type %d with error: %+v", m.msgType, err)
+			return
+		}
+		if err := p.db.StoreMessage(m.msgType, &o); err != nil {
+			glog.Errorf("failed to store message of type: %d in the database with error: %+v", m.msgType, err)
+			return
+		}
 	case bmp.L3VPNMsg:
 		var o message.L3VPNPrefix
 		if err := json.Unmarshal(m.msgData, &o); err != nil {

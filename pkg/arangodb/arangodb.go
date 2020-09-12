@@ -66,59 +66,46 @@ func (a *arangoDB) GetArangoDBInterface() *ArangoConn {
 func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 	switch msgType {
 	case bmp.PeerStateChangeMsg:
-		_, ok := msg.(*message.PeerStateChange)
+		p, ok := msg.(*message.PeerStateChange)
 		if !ok {
 			return fmt.Errorf("malformed PeerStateChange message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", p)
-		// go a.peerChangeHandler(p)
+		a.peerChangeHandler(p)
 	case bmp.UnicastPrefixMsg:
 		un, ok := msg.(*message.UnicastPrefix)
 		if !ok {
 			return fmt.Errorf("malformed UnicastPrefix message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", un)
 		a.unicastPrefixHandler(un)
 	case bmp.LSLinkMsg:
 		lsl, ok := msg.(*message.LSLink)
 		if !ok {
 			return fmt.Errorf("malformed LSNode message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", ln)
 		a.lslinkHandler(lsl)
 	case bmp.LSNodeMsg:
 		lsn, ok := msg.(*message.LSNode)
 		if !ok {
 			return fmt.Errorf("malformed LSNode message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", ln)
 		a.lsnodeHandler(lsn)
 	case bmp.LSPrefixMsg:
 		lsp, ok := msg.(*message.LSPrefix)
 		if !ok {
 			return fmt.Errorf("malformed LSPrefix message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", *lsp)
 		a.lsprefixHandler(lsp)
 	case bmp.LSSRv6SIDMsg:
 		srv6sid, ok := msg.(*message.LSSRv6SID)
 		if !ok {
 			return fmt.Errorf("malformed LSPrefix message")
 		}
-		// Remove after the corresponding handler is added
-		// glog.Infof("Object: %+v", *lsp)
 		a.lsSRV6SIDHandler(srv6sid)
 	case bmp.L3VPNMsg:
 		l3, ok := msg.(*message.L3VPNPrefix)
 		if !ok {
 			return fmt.Errorf("malformed L3VPN message")
 		}
-		// glog.Infof("Object: %+v", *l3)
 		a.l3vpnHandler(l3)
 	}
 

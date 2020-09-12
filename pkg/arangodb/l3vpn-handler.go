@@ -93,7 +93,7 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 	switch obj.Action {
 	case "add":
 		if ok {
-			glog.Infof("Add for existing prefix: %s", k)
+			glog.V(6).Infof("Add for existing prefix: %s", k)
 			// Document by the key already exists, hence reading previous version of the document first
 			// and then updating it
 			var o L3VPNPrefix
@@ -114,7 +114,7 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 			// All good, the document was updated and processRouteTargets succeeded, returning...
 			return
 		}
-		glog.Infof("Add for non-existing prefix: %s", k)
+		glog.V(6).Infof("Add for non-existing prefix: %s", k)
 		if _, err := prc.CreateDocument(ctx, r); err != nil {
 			glog.Errorf("failed to create document %s with error: %+v", k, err)
 			return
@@ -126,7 +126,7 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 		}
 	case "del":
 		if ok {
-			glog.Infof("Delete for existing prefix: %s", k)
+			glog.V(6).Infof("Delete for existing prefix: %s", k)
 			// Document by the key exists, hence delete it
 			if _, err := prc.RemoveDocument(ctx, k); err != nil {
 				glog.Errorf("failed to delete document %s with error: %+v", k, err)
@@ -139,7 +139,6 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 			}
 			return
 		}
-		glog.Warningf("Delete for non-existing prefix: %s", k)
 	}
 }
 

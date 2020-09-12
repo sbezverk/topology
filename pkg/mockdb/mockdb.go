@@ -46,52 +46,52 @@ func (m *mockDB) StoreMessage(msgType int, msg interface{}) error {
 		if !ok {
 			return fmt.Errorf("malformed PeerStateChange message")
 		}
-		go m.peerChangeHandler(p)
+		m.peerChangeHandler(p)
 	case bmp.UnicastPrefixMsg:
 		un, ok := msg.(*message.UnicastPrefix)
 		if !ok {
 			return fmt.Errorf("malformed UnicastPrefix message")
 		}
-		go m.unicastPrefixHandler(un)
+		m.unicastPrefixHandler(un)
 	case bmp.LSNodeMsg:
 		ln, ok := msg.(*message.LSNode)
 		if !ok {
 			return fmt.Errorf("malformed LSNode message")
 		}
-		go m.lsNodeHandler(ln)
+		m.lsNodeHandler(ln)
 	case bmp.LSLinkMsg:
 		ll, ok := msg.(*message.LSLink)
 		if !ok {
 			return fmt.Errorf("malformed LSLink message")
 		}
-		go m.lsLinkHandler(ll)
+		m.lsLinkHandler(ll)
 	case bmp.L3VPNMsg:
 		l3, ok := msg.(*message.L3VPNPrefix)
 		if !ok {
 			return fmt.Errorf("malformed L3VPN message")
 		}
-		go m.l3vpnPrefixHandler(l3)
+		m.l3vpnPrefixHandler(l3)
 	}
 
 	return nil
 }
 
 func (m *mockDB) peerChangeHandler(obj *message.PeerStateChange) {
-	glog.Infof("><SB> peer change handler")
+	glog.V(5).Infof("peer change handler")
 }
 
 func (m *mockDB) unicastPrefixHandler(obj *message.UnicastPrefix) {
-	glog.Infof("><SB> unicast prefix handler")
+	glog.V(5).Infof("unicast prefix handler")
 }
 
 func (m *mockDB) lsNodeHandler(obj *message.LSNode) {
-	glog.Infof("><SB> LS Node handler")
+	glog.V(5).Infof("LS Node handler")
 }
 
 func (m *mockDB) lsLinkHandler(obj *message.LSLink) {
-	glog.Infof("><SB> LS Link handler")
+	glog.V(5).Infof("LS Link handler")
 }
 
 func (m *mockDB) l3vpnPrefixHandler(obj *message.L3VPNPrefix) {
-	glog.Infof("><SB> L3VPNPrefix handler")
+	glog.V(5).Infof("L3VPNPrefix handler")
 }

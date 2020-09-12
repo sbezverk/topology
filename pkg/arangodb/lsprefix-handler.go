@@ -69,7 +69,7 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 	switch obj.Action {
 	case "add":
 		if ok {
-			glog.Infof("Update for existing prefix: %s", k)
+			glog.V(6).Infof("Update for existing prefix: %s", k)
 			if _, err := prc.UpdateDocument(ctx, k, r); err != nil {
 				glog.Errorf("failed to update document %s with error: %+v", k, err)
 				return
@@ -77,14 +77,14 @@ func (a *arangoDB) lsprefixHandler(obj *message.LSPrefix) {
 			// All good, the document was updated and processRouteTargets succeeded, returning...
 			return
 		}
-		glog.Infof("Add new prefix: %s", k)
+		glog.V(6).Infof("Add new prefix: %s", k)
 		if _, err := prc.CreateDocument(ctx, r); err != nil {
 			glog.Errorf("failed to create document %s with error: %+v", k, err)
 			return
 		}
 	case "del":
 		if ok {
-			glog.Infof("Delete for existing prefix: %s", k)
+			glog.V(6).Infof("Delete for existing prefix: %s", k)
 			// Document by the key exists, hence delete it
 			if _, err := prc.RemoveDocument(ctx, k); err != nil {
 				glog.Errorf("failed to delete document %s with error: %+v", k, err)

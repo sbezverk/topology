@@ -84,42 +84,42 @@ func (m *mockMessenger) messenger() {
 		select {
 		case <-peer.C:
 			if m.store[bmp.PeerStateChangeMsg].added {
-				glog.Infof("peer delete")
+				glog.V(5).Infof("peer delete")
 				m.proc.SendMessage(bmp.PeerStateChangeMsg, m.store[bmp.PeerStateChangeMsg].msgs[1])
 				m.store[bmp.PeerStateChangeMsg].added = false
 			} else {
-				glog.Infof("peer add")
+				glog.V(5).Infof("peer add")
 				m.proc.SendMessage(bmp.PeerStateChangeMsg, m.store[bmp.PeerStateChangeMsg].msgs[0])
 				m.store[bmp.PeerStateChangeMsg].added = true
 			}
 		case <-lsNode.C:
 			if m.store[bmp.LSNodeMsg].added {
-				glog.Infof("ls node delete")
+				glog.V(5).Infof("ls node delete")
 				m.proc.SendMessage(bmp.LSNodeMsg, m.store[bmp.LSNodeMsg].msgs[1])
 				m.store[bmp.LSNodeMsg].added = false
 			} else {
-				glog.Infof("ls node add")
+				glog.V(5).Infof("ls node add")
 				m.proc.SendMessage(bmp.LSNodeMsg, m.store[bmp.LSNodeMsg].msgs[0])
 				m.store[bmp.LSNodeMsg].added = true
 			}
 		case <-lsLink.C:
 			if m.store[bmp.LSLinkMsg].added {
-				glog.Infof("ls link delete")
+				glog.V(5).Infof("ls link delete")
 				m.proc.SendMessage(bmp.LSLinkMsg, m.store[bmp.LSLinkMsg].msgs[1])
 				m.store[bmp.LSLinkMsg].added = false
 			} else {
-				glog.Infof("ls link add")
+				glog.V(5).Infof("ls link add")
 				m.proc.SendMessage(bmp.LSLinkMsg, m.store[bmp.LSLinkMsg].msgs[0])
 				m.store[bmp.LSLinkMsg].added = true
 			}
-			//	case <-unicastPrefix.C:
-			//		if m.store[bmp.UnicastPrefixMsg].added {
-			//			m.proc.SendMessage(bmp.UnicastPrefixMsg, m.store[bmp.UnicastPrefixMsg].msgs[1])
-			//			m.store[bmp.UnicastPrefixMsg].added = false
-			//		} else {
-			//			m.proc.SendMessage(bmp.UnicastPrefixMsg, m.store[bmp.UnicastPrefixMsg].msgs[0])
-			//			m.store[bmp.UnicastPrefixMsg].added = true
-			//		}
+		// case <-unicastPrefix.C:
+		// 	if m.store[bmp.UnicastPrefixMsg].added {
+		// 		m.proc.SendMessage(bmp.UnicastPrefixMsg, m.store[bmp.UnicastPrefixMsg].msgs[1])
+		// 		m.store[bmp.UnicastPrefixMsg].added = false
+		// 	} else {
+		// 		m.proc.SendMessage(bmp.UnicastPrefixMsg, m.store[bmp.UnicastPrefixMsg].msgs[0])
+		// 		m.store[bmp.UnicastPrefixMsg].added = true
+		// 	}
 		case <-m.stop:
 			return
 		}

@@ -18,7 +18,7 @@ func (a *arangoDB) lsSRV6SIDHandler(obj *message.LSSRv6SID) {
 		glog.Warning("srv6LS object is nil")
 		return
 	}
-	k := obj.IGPRouterID
+	k := obj.IGPRouterID + "_" + obj.SRv6SID
 	// Locking the key "k" to prevent race over the same key value
 	a.lckr.Lock(k)
 	defer a.lckr.Unlock(k)

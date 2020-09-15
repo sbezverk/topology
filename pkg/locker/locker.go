@@ -35,7 +35,6 @@ func (l *locker) Lock(key string) {
 	l.mtx.Unlock()
 	if ok {
 		lock.Lock()
-		// fmt.Printf("key exists: %s used: %t\n", key, lock.used)
 		// Unlocking keys map so other go routine could access it
 		// Wait only if the key is already used, otherwise locked it and mark it as used.
 		if lock.used {
@@ -57,11 +56,20 @@ func (l *locker) Lock(key string) {
 func (l *locker) Unlock(key string) {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
-	if lock, ok := l.store[key]; ok {
-		lock.Lock()
-		lock.used = false
-		lock.lock.Signal()
-		lock.Unlock()
+	if k, ok := l.store[key]; ok {
+		k.Lock()
+		k.used = false
+		k.lock.Signal()
+		k.Unlock()
+		l.gc()
+	}
+}
+
+func (l *locker) gc() {
+	for k, v := range l.store {
+		if !v.used {
+			delete(l.store, k)
+		}
 	}
 }
 

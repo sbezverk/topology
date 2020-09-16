@@ -2,6 +2,7 @@ package arangodb
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	driver "github.com/arangodb/go-driver"
@@ -13,16 +14,15 @@ const (
 	unicastCollectionName = "UnicastPrefix_Test"
 )
 
-func (a *arangoDB) unicastPrefixHandler(obj *message.UnicastPrefix) {
+func (a *arangoDB) unicastPrefixHandler(obj *message.UnicastPrefix) error {
 	ctx := context.TODO()
 	if obj == nil {
-		glog.Warning("UnicastPrefix object is nil")
-		return
+		return fmt.Errorf("UnicastPrefix object is nil")
 	}
 	k := obj.Prefix + "_" + strconv.Itoa(int(obj.PrefixLen)) + "_" + obj.PeerIP
 	// Locking the key "k" to prevent race over the same key value
-	a.lckr.Lock(k)
-	defer a.lckr.Unlock(k)
+	//	a.lckr.Lock(k)
+	//		defer a.lckr.Unlock(k)
 	r := &message.UnicastPrefix{
 		Key:            k,
 		ID:             unicastCollectionName + "/" + k,
@@ -50,41 +50,46 @@ func (a *arangoDB) unicastPrefixHandler(obj *message.UnicastPrefix) {
 
 	var prc driver.Collection
 	var err error
-	if prc, err = a.ensureCollection(unicastCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", unicastCollectionName, err)
-		return
+	if prc, err = a.checkCollection(unicastCollectionName); err != nil {
+		if prc, err = a.ensureCollection(unicastCollectionName); err != nil {
+			return fmt.Errorf("failed to ensure for collection %s with error: %+v", unicastCollectionName, err)
+		}
 	}
-	ok, err := prc.DocumentExists(ctx, k)
-	if err != nil {
-		glog.Errorf("failed to check for document %s with error: %+v", k, err)
-		return
-	}
-
 	switch obj.Action {
 	case "add":
-		if ok {
-			glog.V(6).Infof("Update for existing prefix: %s", k)
-			if _, err := prc.UpdateDocument(ctx, k, r); err != nil {
-				glog.Errorf("failed to update document %s with error: %+v", k, err)
-				return
-			}
-			// All good, the document was updated and processRouteTargets succeeded, returning...
-			return
-		}
-		glog.V(6).Infof("Add new prefix: %s", k)
+		glog.V(6).Infof("Add new prefix: %s", r.Key)
 		if _, err := prc.CreateDocument(ctx, r); err != nil {
-			glog.Errorf("failed to create document %s with error: %+v", k, err)
-			return
+			switch {
+			// Condition when a collection was deleted while the topology was running
+			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound):
+				if prc, err = a.ensureCollection(unicastCollectionName); err != nil {
+					return fmt.Errorf("failed to ensure for collection %s with error: %+v", unicastCollectionName, err)
+				}
+				// TODO Consider retry logic if the collection was successfully recreated
+				return nil
+				// The following two errors are triggered while adding a document with the key
+				// already existing in the database.
+			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoConflict):
+				// glog.Errorf("conflict detected for %+v", *r)
+			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoUniqueConstraintViolated):
+				// glog.Errorf("unique constraint violated for %+v", *r)
+			case driver.IsPreconditionFailed(err):
+				return fmt.Errorf("precondition for %+v failed", *r)
+			default:
+				return fmt.Errorf("failed to add document %s with error: %+v", r.Key, err)
+			}
+			if _, err := prc.UpdateDocument(ctx, r.Key, r); err != nil {
+				return fmt.Errorf("update failed %s with error: %+v", r.Key, err)
+			}
 		}
 	case "del":
-		if ok {
-			glog.V(6).Infof("Delete for existing prefix: %s", k)
-			// Document by the key exists, hence delete it
-			if _, err := prc.RemoveDocument(ctx, k); err != nil {
-				glog.Errorf("failed to delete document %s with error: %+v", k, err)
-				return
+		glog.V(6).Infof("Delete for prefix: %s", r.Key)
+		// Document by the key exists, hence delete it
+		if _, err := prc.RemoveDocument(ctx, r.Key); err != nil {
+			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDocumentNotFound) {
+				return fmt.Errorf("failed to delete document %s with error: %+v", r.Key, err)
 			}
-			return
 		}
 	}
+	return nil
 }

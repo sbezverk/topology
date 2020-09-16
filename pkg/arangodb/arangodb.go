@@ -76,7 +76,7 @@ func (a *arangoDB) StoreMessage(msgType int, msg interface{}) error {
 		if !ok {
 			return fmt.Errorf("malformed UnicastPrefix message")
 		}
-		a.unicastPrefixHandler(un)
+		return a.unicastPrefixHandler(un)
 	case bmp.LSLinkMsg:
 		lsl, ok := msg.(*message.LSLink)
 		if !ok {

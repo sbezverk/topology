@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/bmp"
 	"github.com/sbezverk/gobmp/pkg/tools"
-	"github.com/sbezverk/topology/pkg/processor"
+	"github.com/sbezverk/topology/pkg/dbclient"
 )
 
 // Define constants for each topic name
@@ -44,13 +44,13 @@ type Srv interface {
 type kafka struct {
 	stopCh  chan struct{}
 	brokers []string
-	proc    processor.Messenger
+	db      dbclient.DB
 	config  *sarama.Config
 	master  sarama.Consumer
 }
 
 // NewKafkaMessenger returns an instance of a kafka consumer acting as a messenger server
-func NewKafkaMessenger(kafkaSrv string, messenger processor.Messenger) (Srv, error) {
+func NewKafkaMessenger(kafkaSrv string, db dbclient.DB) (Srv, error) {
 	glog.Infof("NewKafkaMessenger")
 	if err := tools.HostAddrValidator(kafkaSrv); err != nil {
 		return nil, err
@@ -72,8 +72,7 @@ func NewKafkaMessenger(kafkaSrv string, messenger processor.Messenger) (Srv, err
 		stopCh: make(chan struct{}),
 		config: config,
 		master: master,
-		// 	conn: conn,
-		proc: messenger,
+		db:     db,
 	}
 
 	return k, nil
@@ -116,7 +115,7 @@ func (k *kafka) topicReader(topicType int, topicName string) {
 				if msg == nil {
 					continue
 				}
-				k.proc.SendMessage(topicType, msg.Value)
+				k.db.StoreMessage(topicType, msg.Value)
 			case consumerError := <-consumer.Errors():
 				if consumerError == nil {
 					break

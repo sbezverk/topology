@@ -86,11 +86,11 @@ func NewProcessorSrv(client dbclient.DB) Srv {
 
 func (p *processor) Start() error {
 	glog.Info("Starting Topology Processor")
-	for mt, t := range p.topics {
-		if t != nil {
-			go t.topicWorker(mt, p.db.StoreMessage)
-		}
-	}
+	// for mt, t := range p.topics {
+	// 	if t != nil {
+	// 				go t.topicWorker(mt, p.db.StoreMessage)
+	// 	}
+	// }
 
 	return nil
 }

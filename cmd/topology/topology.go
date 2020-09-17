@@ -14,8 +14,6 @@ import (
 	"github.com/sbezverk/topology/pkg/kafkamessenger"
 	"github.com/sbezverk/topology/pkg/messenger"
 	"github.com/sbezverk/topology/pkg/mockdb"
-	"github.com/sbezverk/topology/pkg/mockmessenger"
-	"github.com/sbezverk/topology/pkg/processor"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -99,11 +97,6 @@ func main() {
 		}
 	}
 
-	// Initializing new processor process
-	processorSrv := processor.NewProcessorSrv(dbSrv.GetInterface())
-	// Starting topology server
-	processorSrv.Start()
-
 	// Initializing messenger process
 	isMockMsg, err := strconv.ParseBool(mockMsg)
 	if err != nil {
@@ -112,13 +105,13 @@ func main() {
 	}
 	var msgSrv messenger.Srv
 	if !isMockMsg {
-		msgSrv, err = kafkamessenger.NewKafkaMessenger(msgSrvAddr, processorSrv.GetInterface())
+		msgSrv, err = kafkamessenger.NewKafkaMessenger(msgSrvAddr, dbSrv.GetInterface())
 		if err != nil {
 			glog.Errorf("failed to initialize message server with error: %+v", err)
 			os.Exit(1)
 		}
 	} else {
-		msgSrv, _ = mockmessenger.NewMockMessenger(processorSrv.GetInterface())
+		// msgSrv, _ = mockmessenger.NewMockMessenger(dbSrv.GetInterface())
 	}
 
 	msgSrv.Start()
@@ -127,7 +120,6 @@ func main() {
 	<-stopCh
 
 	msgSrv.Stop()
-	//	processorSrv.Stop()
 	dbSrv.Stop()
 
 	os.Exit(0)

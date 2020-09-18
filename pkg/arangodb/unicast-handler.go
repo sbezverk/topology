@@ -10,62 +10,12 @@ import (
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-const (
-	unicastCollectionName = "UnicastPrefix_Test"
-)
-
-type FIFO interface {
-	Push(*message.UnicastPrefix)
-	Pop() *message.UnicastPrefix
-	Len() int
+type unicastPrefixArangoMessage struct {
+	*message.UnicastPrefix
 }
 
-type entry struct {
-	next     *entry
-	previous *entry
-	data     *message.UnicastPrefix
-}
-type fifo struct {
-	head *entry
-	tail *entry
-	len  int
-}
-
-func (f *fifo) Push(o *message.UnicastPrefix) {
-	// Empty stack case
-	e := &entry{
-		next: f.tail,
-		data: o,
-	}
-	if f.head == nil && f.tail == nil {
-		f.head = e
-	}
-	f.tail = e
-	if f.tail.next != nil {
-		f.tail.next.previous = f.tail
-	}
-	f.len++
-}
-
-func (f *fifo) Pop() *message.UnicastPrefix {
-	if f.head == nil {
-		// Stack is empty
-		return nil
-	}
-	data := f.head.data
-	f.head = f.head.previous
-	f.len--
-	return data
-}
-
-func (f *fifo) Len() int {
-	return f.len
-}
-func newUnicastPrefixFIFO() FIFO {
-	return &fifo{
-		head: nil,
-		tail: nil,
-	}
+func (u *unicastPrefixArangoMessage) StackableItem() {
+	// Noop function, just to comply with Stackable interface
 }
 
 type result struct {
@@ -87,7 +37,7 @@ func (c *collection) unicastPrefixHandler() {
 	for {
 		select {
 		case m := <-c.queue:
-			var o message.UnicastPrefix
+			var o unicastPrefixArangoMessage
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
 				glog.Errorf("failed to unmarshal Unicast Prefix message with error: %+v", err)
 				continue
@@ -98,7 +48,7 @@ func (c *collection) unicastPrefixHandler() {
 				// Check if there is already a backlog for this key, if not then create it
 				b, ok := backlog[k]
 				if !ok {
-					b = newUnicastPrefixFIFO()
+					b = newFIFO()
 				}
 				// Saving message in the backlog
 				b.Push(&o)
@@ -130,7 +80,7 @@ func (c *collection) unicastPrefixHandler() {
 				tokens <- struct{}{}
 				keyStore[r.key] = true
 				//				glog.Infof("Deposited one token")
-				go c.unicastPrefixWorker(r.key, bo, done, tokens)
+				go c.unicastPrefixWorker(r.key, bo.(*unicastPrefixArangoMessage), done, tokens)
 				//				glog.Infof("Started go routine for key: %s", k)
 			}
 			if b.Len() == 0 {
@@ -142,7 +92,7 @@ func (c *collection) unicastPrefixHandler() {
 	}
 }
 
-func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, done chan *result, tokens chan struct{}) {
+func (c *collection) unicastPrefixWorker(k string, obj *unicastPrefixArangoMessage, done chan *result, tokens chan struct{}) {
 	var err error
 	defer func() {
 		<-tokens
@@ -153,37 +103,15 @@ func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, d
 		glog.V(5).Infof("done key: %s, total messages: %s", k, c.stats.total.String())
 	}()
 	ctx := context.TODO()
-	r := &message.UnicastPrefix{
-		Key:            k,
-		ID:             unicastCollectionName + "/" + k,
-		Sequence:       obj.Sequence,
-		Hash:           obj.Hash,
-		RouterHash:     obj.RouterHash,
-		RouterIP:       obj.RouterIP,
-		BaseAttributes: obj.BaseAttributes,
-		PeerHash:       obj.PeerHash,
-		PeerIP:         obj.PeerIP,
-		PeerASN:        obj.PeerASN,
-		Timestamp:      obj.Timestamp,
-		Prefix:         obj.Prefix,
-		PrefixLen:      obj.PrefixLen,
-		IsIPv4:         obj.IsIPv4,
-		OriginAS:       obj.OriginAS,
-		Nexthop:        obj.Nexthop,
-		IsNexthopIPv4:  obj.IsNexthopIPv4,
-		PathID:         obj.PathID,
-		Labels:         obj.Labels,
-		IsPrepolicy:    obj.IsPrepolicy,
-		IsAdjRIBIn:     obj.IsAdjRIBIn,
-		PrefixSID:      obj.PrefixSID,
-	}
+	obj.Key = k
+	obj.ID = c.name + "/" + k
 
 	switch obj.Action {
 	case "add":
 		if glog.V(6) {
-			glog.Infof("Add new prefix: %s", r.Key)
+			glog.Infof("Add new prefix: %s", obj.Key)
 		}
-		if _, e := c.topicCollection.CreateDocument(ctx, r); e != nil {
+		if _, e := c.topicCollection.CreateDocument(ctx, obj); e != nil {
 			switch {
 			// The following 2 types of errors inidcate that the document by the key already
 			// exists, no need to fail but instead call Update of the document.
@@ -193,16 +121,16 @@ func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, d
 				err = e
 				break
 			}
-			if _, e := c.topicCollection.UpdateDocument(ctx, r.Key, r); e != nil {
+			if _, e := c.topicCollection.UpdateDocument(ctx, obj.Key, obj); e != nil {
 				err = e
 				break
 			}
 		}
 	case "del":
 		if glog.V(6) {
-			glog.Infof("Delete for prefix: %s", r.Key)
+			glog.Infof("Delete for prefix: %s", obj.Key)
 		}
-		if _, e := c.topicCollection.RemoveDocument(ctx, r.Key); e != nil {
+		if _, e := c.topicCollection.RemoveDocument(ctx, obj.Key); e != nil {
 			if !driver.IsArangoErrorWithErrorNum(e, driver.ErrArangoDocumentNotFound) {
 				err = e
 			}
@@ -210,21 +138,4 @@ func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, d
 	}
 
 	return
-}
-
-func (c *collection) processError(r *result) bool {
-	switch {
-	// Condition when a collection was deleted while the topology was running
-	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
-		if err := c.arango.ensureCollection(c.name, c.collectionType); err != nil {
-			return true
-		}
-		return false
-	case driver.IsPreconditionFailed(r.err):
-		glog.Errorf("precondition for %+v failed", r.key)
-		return false
-	default:
-		glog.Errorf("failed to add document %s with error: %+v", r.key, r.err)
-		return true
-	}
 }

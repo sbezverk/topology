@@ -46,6 +46,23 @@ type collection struct {
 	arango          *arangoDB
 }
 
+func (c *collection) processError(r *result) bool {
+	switch {
+	// Condition when a collection was deleted while the topology was running
+	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
+		if err := c.arango.ensureCollection(c.name, c.collectionType); err != nil {
+			return true
+		}
+		return false
+	case driver.IsPreconditionFailed(r.err):
+		glog.Errorf("precondition for %+v failed", r.key)
+		return false
+	default:
+		glog.Errorf("failed to add document %s with error: %+v", r.key, r.err)
+		return true
+	}
+}
+
 type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
@@ -80,24 +97,6 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) 
 		return nil, err
 	}
 
-	// arango.collections[bmp.UnicastPrefixMsg] = &collection{
-	// 	queue:  make(chan *queueMsg, 10240),
-	// 	name:   "UnicastPrefix_Test",
-	// 	stats:  &stats{},
-	// 	stop:   arango.stop,
-	// 	lckr:   locker.NewLocker(),
-	// 	arango: arango.db,
-	// }
-	// arango.collections[bmp.UnicastPrefixMsg].handler = arango.collections[bmp.UnicastPrefixMsg].unicastPrefixHandler
-	// c, err := arango.db.Collection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name)
-	// if err != nil {
-	// 	if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
-	// 		return nil, err
-	// 	}
-	// 	c, err = arango.db.CreateCollection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name, &driver.CreateCollectionOptions{})
-	// }
-	// arango.collections[bmp.UnicastPrefixMsg].topicCollection = c
-
 	return arango, nil
 }
 
@@ -112,6 +111,12 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 			collectionType: collectionType,
 		}
 		switch collectionType {
+		case bmp.PeerStateChangeMsg:
+		case bmp.LSLinkMsg:
+		case bmp.LSNodeMsg:
+		case bmp.LSPrefixMsg:
+		case bmp.LSSRv6SIDMsg:
+		case bmp.L3VPNMsg:
 		case bmp.UnicastPrefixMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].unicastPrefixHandler
 		default:
@@ -160,50 +165,6 @@ func (a *arangoDB) StoreMessage(msgType int, msg []byte) error {
 			msgData: msg,
 		}
 	}
-	// switch msgType {
-	// case bmp.PeerStateChangeMsg:
-	// 	p, ok := msg.(*message.PeerStateChange)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed PeerStateChange message")
-	// 	}
-	// 	a.peerChangeHandler(p)
-	// case bmp.UnicastPrefixMsg:
-	// 	un, ok := msg.(*message.UnicastPrefix)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed UnicastPrefix message")
-	// 	}
-	// 	return a.unicastPrefixHandler(un)
-	// case bmp.LSLinkMsg:
-	// 	lsl, ok := msg.(*message.LSLink)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed LSNode message")
-	// 	}
-	// 	a.lslinkHandler(lsl)
-	// case bmp.LSNodeMsg:
-	// 	lsn, ok := msg.(*message.LSNode)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed LSNode message")
-	// 	}
-	// 	a.lsnodeHandler(lsn)
-	// case bmp.LSPrefixMsg:
-	// 	lsp, ok := msg.(*message.LSPrefix)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed LSPrefix message")
-	// 	}
-	// 	a.lsprefixHandler(lsp)
-	// case bmp.LSSRv6SIDMsg:
-	// 	srv6sid, ok := msg.(*message.LSSRv6SID)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed LSPrefix message")
-	// 	}
-	// 	a.lsSRV6SIDHandler(srv6sid)
-	// case bmp.L3VPNMsg:
-	// 	l3, ok := msg.(*message.L3VPNPrefix)
-	// 	if !ok {
-	// 		return fmt.Errorf("malformed L3VPN message")
-	// 	}
-	// 	a.l3vpnHandler(l3)
-	// }
 
 	return nil
 }

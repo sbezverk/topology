@@ -3,22 +3,21 @@ package arangodb
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-type unicastPrefixArangoMessage struct {
-	*message.UnicastPrefix
+type peerStateChangeArangoMessage struct {
+	*message.PeerStateChange
 }
 
-func (u *unicastPrefixArangoMessage) StackableItem() {
+func (u *peerStateChangeArangoMessage) StackableItem() {
 	// Noop function, just to comply with Stackable interface
 }
 
-func (c *collection) unicastPrefixHandler() {
+func (c *collection) peerStateChangeHandler() {
 	glog.Infof("Starting Unicast Prefix handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
 	// a go routine for the key
@@ -32,12 +31,12 @@ func (c *collection) unicastPrefixHandler() {
 	for {
 		select {
 		case m := <-c.queue:
-			var o unicastPrefixArangoMessage
+			var o peerStateChangeArangoMessage
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
 				glog.Errorf("failed to unmarshal Unicast Prefix message with error: %+v", err)
 				continue
 			}
-			k := o.Prefix + "_" + strconv.Itoa(int(o.PrefixLen)) + "_" + o.PeerIP
+			k := o.RouterIP
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it
@@ -53,7 +52,7 @@ func (c *collection) unicastPrefixHandler() {
 			// Depositing one token and calling worker to process message for the key
 			tokens <- struct{}{}
 			keyStore[k] = true
-			go c.unicastPrefixWorker(k, &o, done, tokens)
+			go c.peerStateChangeWorker(k, &o, done, tokens)
 		case r := <-done:
 			if r.err != nil {
 				// Error was encountered during processing of the key
@@ -72,7 +71,7 @@ func (c *collection) unicastPrefixHandler() {
 			if bo != nil {
 				tokens <- struct{}{}
 				keyStore[r.key] = true
-				go c.unicastPrefixWorker(r.key, bo.(*unicastPrefixArangoMessage), done, tokens)
+				go c.peerStateChangeWorker(r.key, bo.(*peerStateChangeArangoMessage), done, tokens)
 			}
 			if b.Len() == 0 {
 				delete(backlog, r.key)
@@ -83,7 +82,7 @@ func (c *collection) unicastPrefixHandler() {
 	}
 }
 
-func (c *collection) unicastPrefixWorker(k string, obj *unicastPrefixArangoMessage, done chan *result, tokens chan struct{}) {
+func (c *collection) peerStateChangeWorker(k string, obj *peerStateChangeArangoMessage, done chan *result, tokens chan struct{}) {
 	var err error
 	defer func() {
 		<-tokens

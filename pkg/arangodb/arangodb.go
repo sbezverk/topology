@@ -13,6 +13,11 @@ import (
 	"go.uber.org/atomic"
 )
 
+type result struct {
+	key string
+	err error
+}
+
 type collectionInfo struct {
 	name    string
 	handler func()
@@ -96,6 +101,9 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) 
 	if err := arango.ensureCollection("UnicastPrefix_Test", bmp.UnicastPrefixMsg); err != nil {
 		return nil, err
 	}
+	if err := arango.ensureCollection("Node_Test", bmp.UnicastPrefixMsg); err != nil {
+		return nil, err
+	}
 
 	return arango, nil
 }
@@ -112,6 +120,7 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 		}
 		switch collectionType {
 		case bmp.PeerStateChangeMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].peerStateChangeHandler
 		case bmp.LSLinkMsg:
 		case bmp.LSNodeMsg:
 		case bmp.LSPrefixMsg:

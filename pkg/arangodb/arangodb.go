@@ -13,6 +13,18 @@ import (
 	"go.uber.org/atomic"
 )
 
+var (
+	collections = map[int]string{
+		bmp.PeerStateChangeMsg: "Node_Test",
+		//		bmp.LSLinkMsg:          "",
+		//		bmp.LSNodeMsg:          "",
+		//		bmp.LSPrefixMsg:        "",
+		//		bmp.LSSRv6SIDMsg:       "",
+		//		bmp.L3VPNMsg:           "",
+		bmp.UnicastPrefixMsg: "UnicastPrefix_Test",
+	}
+)
+
 type result struct {
 	key string
 	err error
@@ -98,11 +110,10 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) 
 	arango.ArangoConn = arangoConn
 
 	// Init collections
-	if err := arango.ensureCollection("UnicastPrefix_Test", bmp.UnicastPrefixMsg); err != nil {
-		return nil, err
-	}
-	if err := arango.ensureCollection("Node_Test", bmp.UnicastPrefixMsg); err != nil {
-		return nil, err
+	for t, n := range collections {
+		if err := arango.ensureCollection(n, t); err != nil {
+			return nil, err
+		}
 	}
 
 	return arango, nil
@@ -121,11 +132,11 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 		switch collectionType {
 		case bmp.PeerStateChangeMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].peerStateChangeHandler
-		case bmp.LSLinkMsg:
-		case bmp.LSNodeMsg:
-		case bmp.LSPrefixMsg:
-		case bmp.LSSRv6SIDMsg:
-		case bmp.L3VPNMsg:
+			//		case bmp.LSLinkMsg:
+			//		case bmp.LSNodeMsg:
+			//		case bmp.LSPrefixMsg:
+			//		case bmp.LSSRv6SIDMsg:
+			//		case bmp.L3VPNMsg:
 		case bmp.UnicastPrefixMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].unicastPrefixHandler
 		default:

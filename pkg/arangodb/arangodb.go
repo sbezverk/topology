@@ -2,6 +2,7 @@ package arangodb
 
 import (
 	"context"
+	"fmt"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -40,8 +41,9 @@ type collection struct {
 	lckr            locker.Locker
 	topicCollection driver.Collection
 	name            string
+	collectionType  int
 	handler         func()
-	arango          driver.Database
+	arango          *arangoDB
 }
 
 type arangoDB struct {
@@ -73,25 +75,59 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) 
 	arango.DB = arango
 	arango.ArangoConn = arangoConn
 
-	arango.collections[bmp.UnicastPrefixMsg] = &collection{
-		queue:  make(chan *queueMsg, 10240),
-		name:   "UnicastPrefix_Test",
-		stats:  &stats{},
-		stop:   arango.stop,
-		lckr:   locker.NewLocker(),
-		arango: arango.db,
+	// Init collections
+	if err := arango.ensureCollection("UnicastPrefix_Test", bmp.UnicastPrefixMsg); err != nil {
+		return nil, err
 	}
-	arango.collections[bmp.UnicastPrefixMsg].handler = arango.collections[bmp.UnicastPrefixMsg].unicastPrefixHandler
-	c, err := arango.db.Collection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name)
-	if err != nil {
-		if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
-			return nil, err
-		}
-		c, err = arango.db.CreateCollection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name, &driver.CreateCollectionOptions{})
-	}
-	arango.collections[bmp.UnicastPrefixMsg].topicCollection = c
+
+	// arango.collections[bmp.UnicastPrefixMsg] = &collection{
+	// 	queue:  make(chan *queueMsg, 10240),
+	// 	name:   "UnicastPrefix_Test",
+	// 	stats:  &stats{},
+	// 	stop:   arango.stop,
+	// 	lckr:   locker.NewLocker(),
+	// 	arango: arango.db,
+	// }
+	// arango.collections[bmp.UnicastPrefixMsg].handler = arango.collections[bmp.UnicastPrefixMsg].unicastPrefixHandler
+	// c, err := arango.db.Collection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name)
+	// if err != nil {
+	// 	if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+	// 		return nil, err
+	// 	}
+	// 	c, err = arango.db.CreateCollection(context.TODO(), arango.collections[bmp.UnicastPrefixMsg].name, &driver.CreateCollectionOptions{})
+	// }
+	// arango.collections[bmp.UnicastPrefixMsg].topicCollection = c
 
 	return arango, nil
+}
+
+func (a *arangoDB) ensureCollection(name string, collectionType int) error {
+	if _, ok := a.collections[collectionType]; !ok {
+		a.collections[collectionType] = &collection{
+			queue:          make(chan *queueMsg),
+			name:           name,
+			stats:          &stats{},
+			stop:           a.stop,
+			arango:         a,
+			collectionType: collectionType,
+		}
+		switch collectionType {
+		case bmp.UnicastPrefixMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].unicastPrefixHandler
+		default:
+			return fmt.Errorf("unknown collection type %d", collectionType)
+		}
+	}
+	ci, err := a.db.Collection(context.TODO(), a.collections[collectionType].name)
+	if err != nil {
+		if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+			return err
+		}
+		ci, err = a.db.CreateCollection(context.TODO(), a.collections[collectionType].name, &driver.CreateCollectionOptions{})
+	}
+	a.collections[collectionType].topicCollection = ci
+
+	return nil
 }
 
 func (a *arangoDB) Start() error {

@@ -68,6 +68,11 @@ func newUnicastPrefixFIFO() FIFO {
 	}
 }
 
+type result struct {
+	key string
+	err error
+}
+
 func (c *collection) unicastPrefixHandler() {
 	glog.Infof("Starting Unicast Prefix handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
@@ -75,19 +80,19 @@ func (c *collection) unicastPrefixHandler() {
 	keyStore := make(map[string]bool)
 	// backlog is used to store duplicate key entry until the key is released (finished processing)
 	backlog := make(map[string]FIFO)
+	// tokens are used to control a number of concurrent goroutine accessing the same collection, to prevent
+	// conflicting database changes, each go routine processes a message with the unique key.
 	tokens := make(chan struct{}, 1024)
-	done := make(chan string, 2048)
+	done := make(chan *result, 2048)
 	for {
 		select {
 		case m := <-c.queue:
 			var o message.UnicastPrefix
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
 				glog.Errorf("failed to unmarshal Unicast Prefix message with error: %+v", err)
-				// workSlot is not used, returning it
 				continue
 			}
 			k := o.Prefix + "_" + strconv.Itoa(int(o.PrefixLen)) + "_" + o.PeerIP
-			//			glog.Infof("Received message for key: %s", k)
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it
@@ -97,22 +102,24 @@ func (c *collection) unicastPrefixHandler() {
 				}
 				// Saving message in the backlog
 				b.Push(&o)
-				//				glog.Infof("backlog length for key:%s %d", k, b.Len())
 				backlog[k] = b
 				continue
 			}
-			// Calling worker to process message for the key
-			//			glog.Infof("Depositing one token")
+			// Depositing one token and calling worker to process message for the key
 			tokens <- struct{}{}
 			keyStore[k] = true
-			//			glog.Infof("Deposited one token")
 			go c.unicastPrefixWorker(k, &o, done, tokens)
-			//			glog.Infof("Started go routine for key: %s", k)
-		case k := <-done:
-			//			glog.Infof("Received done for key: %s", k)
-			delete(keyStore, k)
+		case r := <-done:
+			if r.err != nil {
+				// Error was encountered during processing of the key
+				if c.processError(r) {
+					glog.Errorf("unicastPrefixWorker for key: %s reported a fatal error: %+v", r.key, r.err)
+				}
+				glog.Errorf("unicastPrefixWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
+			}
+			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it
-			b, ok := backlog[k]
+			b, ok := backlog[r.key]
 			if !ok {
 				continue
 			}
@@ -121,13 +128,13 @@ func (c *collection) unicastPrefixHandler() {
 			if bo != nil {
 				// glog.Infof("Depositing one token")
 				tokens <- struct{}{}
-				keyStore[k] = true
+				keyStore[r.key] = true
 				//				glog.Infof("Deposited one token")
-				go c.unicastPrefixWorker(k, bo, done, tokens)
+				go c.unicastPrefixWorker(r.key, bo, done, tokens)
 				//				glog.Infof("Started go routine for key: %s", k)
 			}
 			if b.Len() == 0 {
-				delete(backlog, k)
+				delete(backlog, r.key)
 			}
 		case <-c.stop:
 			return
@@ -135,16 +142,15 @@ func (c *collection) unicastPrefixHandler() {
 	}
 }
 
-func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, done chan string, tokens chan struct{}) {
-	//	glog.Infof("worker for key: %s", k)
+func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, done chan *result, tokens chan struct{}) {
+	var err error
 	defer func() {
 		<-tokens
-		//		glog.Infof("Returned token used for key: %s", k)
-		// Informing Handler that the key has been processed
-		done <- k
-		//		glog.Infof("Returned key: %s", k)
-		glog.Infof("unicast handler received message: %s, total messages: %d", k, c.stats.total.Add(1))
-		//		glog.Infof("All done for key: %s", k)
+		done <- &result{key: k, err: err}
+		if err == nil {
+			c.stats.total.Add(1)
+		}
+		glog.V(5).Infof("done key: %s, total messages: %s", k, c.stats.total.String())
 	}()
 	ctx := context.TODO()
 	r := &message.UnicastPrefix{
@@ -172,58 +178,53 @@ func (c *collection) unicastPrefixWorker(k string, obj *message.UnicastPrefix, d
 		PrefixSID:      obj.PrefixSID,
 	}
 
-	// var prc driver.Collection
-	// var err error
-
-	// if prc, err = c.arango.CollectionExists(ctx, c.name); err != nil {
-	// 	if prc, err = a.ensureCollection(unicastCollectionName); err != nil {
-	// 		return fmt.Errorf("failed to ensure for collection %s with error: %+v", unicastCollectionName, err)
-	// 	}
-	// }
 	switch obj.Action {
 	case "add":
 		if glog.V(6) {
 			glog.Infof("Add new prefix: %s", r.Key)
 		}
-		if _, err := c.topicCollection.CreateDocument(ctx, r); err != nil {
+		if _, e := c.topicCollection.CreateDocument(ctx, r); e != nil {
 			switch {
-			// Condition when a collection was deleted while the topology was running
-			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound):
-				//				if prc, err = a.ensureCollection(unicastCollectionName); err != nil {
-				glog.Errorf("failed to ensure for collection %s with error: %+v", unicastCollectionName, err)
-				return
-				//				}
-				// TODO Consider retry logic if the collection was successfully recreated
-				// The following two errors are triggered while adding a document with the key
-				// already existing in the database.
-			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoConflict):
-				// glog.Errorf("conflict detected for %+v", *r)
-			case driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoUniqueConstraintViolated):
-				// glog.Errorf("unique constraint violated for %+v", *r)
-			case driver.IsPreconditionFailed(err):
-				glog.Errorf("precondition for %+v failed", *r)
-				return
+			// The following 2 types of errors inidcate that the document by the key already
+			// exists, no need to fail but instead call Update of the document.
+			case driver.IsArangoErrorWithErrorNum(e, driver.ErrArangoConflict):
+			case driver.IsArangoErrorWithErrorNum(e, driver.ErrArangoUniqueConstraintViolated):
 			default:
-				glog.Errorf("failed to add document %s with error: %+v", r.Key, err)
-				return
+				err = e
+				break
 			}
-			if _, err := c.topicCollection.UpdateDocument(ctx, r.Key, r); err != nil {
-				glog.Errorf("update failed %s with error: %+v", r.Key, err)
-				return
+			if _, e := c.topicCollection.UpdateDocument(ctx, r.Key, r); e != nil {
+				err = e
+				break
 			}
 		}
 	case "del":
 		if glog.V(6) {
 			glog.Infof("Delete for prefix: %s", r.Key)
 		}
-		// Document by the key exists, hence delete it
-		if _, err := c.topicCollection.RemoveDocument(ctx, r.Key); err != nil {
-			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDocumentNotFound) {
-				glog.Errorf("failed to delete document %s with error: %+v", r.Key, err)
-				return
+		if _, e := c.topicCollection.RemoveDocument(ctx, r.Key); e != nil {
+			if !driver.IsArangoErrorWithErrorNum(e, driver.ErrArangoDocumentNotFound) {
+				err = e
 			}
 		}
 	}
 
 	return
+}
+
+func (c *collection) processError(r *result) bool {
+	switch {
+	// Condition when a collection was deleted while the topology was running
+	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
+		if err := c.arango.ensureCollection(c.name, c.collectionType); err != nil {
+			return true
+		}
+		return false
+	case driver.IsPreconditionFailed(r.err):
+		glog.Errorf("precondition for %+v failed", r.key)
+		return false
+	default:
+		glog.Errorf("failed to add document %s with error: %+v", r.key, r.err)
+		return true
+	}
 }

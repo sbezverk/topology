@@ -76,14 +76,14 @@ func (a *arangoDB) l3vpnHandler(obj *message.L3VPNPrefix) {
 	var prc driver.Collection
 	var rtc driver.Collection
 	var err error
-	if prc, err = a.ensureCollection(l3vpnPrefixCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnPrefixCollectionName, err)
-		return
-	}
-	if rtc, err = a.ensureCollection(l3vpnRTCollectionName); err != nil {
-		glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnRTCollectionName, err)
-		return
-	}
+	// if prc, err = a.ensureCollection(l3vpnPrefixCollectionName); err != nil {
+	// 	glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnPrefixCollectionName, err)
+	// 	return
+	// }
+	// if rtc, err = a.ensureCollection(l3vpnRTCollectionName); err != nil {
+	// 	glog.Errorf("failed to ensure for collection %s with error: %+v", l3vpnRTCollectionName, err)
+	// 	return
+	// }
 	ok, err := prc.DocumentExists(ctx, k)
 	if err != nil {
 		glog.Errorf("failed to check for document %s with error: %+v", k, err)

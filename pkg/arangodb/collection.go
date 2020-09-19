@@ -53,7 +53,7 @@ func (c *collection) processError(r *result) bool {
 		glog.Errorf("precondition for %+v failed", r.key)
 		return false
 	default:
-		glog.Errorf("failed to add document %s with error: %+v", r.key, r.err)
+		glog.Errorf("failed to process the document for key %s with error: %+v", r.key, r.err)
 		return true
 	}
 }
@@ -145,6 +145,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	case bmp.LSSRv6SIDMsg:
 	case bmp.L3VPNMsg:
 	case bmp.UnicastPrefixMsg:
+		obj = o.(*unicastPrefixArangoMessage)
 		obj.(*unicastPrefixArangoMessage).Key = k
 		obj.(*unicastPrefixArangoMessage).ID = c.name + "/" + k
 		action = obj.(*unicastPrefixArangoMessage).Action

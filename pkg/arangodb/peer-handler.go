@@ -13,8 +13,8 @@ type peerStateChangeArangoMessage struct {
 	*message.PeerStateChange
 }
 
-func (u *peerStateChangeArangoMessage) StackableItem() {
-	// Noop function, just to comply with Stackable interface
+func (p *peerStateChangeArangoMessage) MakeKey() string {
+	return p.RouterIP
 }
 
 func (c *collection) peerStateChangeHandler() {
@@ -36,7 +36,7 @@ func (c *collection) peerStateChangeHandler() {
 				glog.Errorf("failed to unmarshal Peer State Change message with error: %+v", err)
 				continue
 			}
-			k := o.RouterIP
+			k := o.MakeKey()
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it

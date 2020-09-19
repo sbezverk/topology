@@ -14,8 +14,30 @@ type lsLinkArangoMessage struct {
 	*message.LSLink
 }
 
-func (u *lsLinkArangoMessage) StackableItem() {
-	// Noop function, just to comply with Stackable interface
+func (l *lsLinkArangoMessage) MakeKey() string {
+	var localIP, remoteIP, localID, remoteID string
+	switch l.MTID {
+	case 0:
+		localIP = "0.0.0.0"
+		remoteIP = "0.0.0.0"
+	case 2:
+		localIP = "::"
+		remoteIP = "::"
+	default:
+		localIP = "unknown-mt-id"
+		remoteIP = "unknown-mt-id"
+	}
+	if len(l.LocalLinkIP) != 0 {
+		localIP = l.LocalLinkIP[0]
+	}
+	if len(l.RemoteLinkIP) != 0 {
+		remoteIP = l.RemoteLinkIP[0]
+	}
+	localID = strconv.Itoa(int(l.LocalLinkID))
+	remoteID = strconv.Itoa(int(l.RemoteLinkID))
+
+	return l.IGPRouterID + "_" + localIP + "_" + localID + "_" + l.RemoteIGPRouterID + "_" + remoteIP + "_" + remoteID
+
 }
 
 func (c *collection) lsLinkHandler() {
@@ -37,27 +59,7 @@ func (c *collection) lsLinkHandler() {
 				glog.Errorf("failed to unmarshal LS Link message with error: %+v", err)
 				continue
 			}
-			var localIP, remoteIP, localID, remoteID string
-			switch o.MTID {
-			case 0:
-				localIP = "0.0.0.0"
-				remoteIP = "0.0.0.0"
-			case 2:
-				localIP = "::"
-				remoteIP = "::"
-			default:
-				localIP = "unknown-mt-id"
-				remoteIP = "unknown-mt-id"
-			}
-			if len(o.LocalLinkIP) != 0 {
-				localIP = o.LocalLinkIP[0]
-			}
-			if len(o.RemoteLinkIP) != 0 {
-				remoteIP = o.RemoteLinkIP[0]
-			}
-			localID = strconv.Itoa(int(o.LocalLinkID))
-			remoteID = strconv.Itoa(int(o.RemoteLinkID))
-			k := o.IGPRouterID + "_" + localIP + "_" + localID + "_" + o.RemoteIGPRouterID + "_" + remoteIP + "_" + remoteID
+			k := o.MakeKey()
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it

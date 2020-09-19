@@ -13,8 +13,8 @@ type lsSRv6SIDArangoMessage struct {
 	*message.LSSRv6SID
 }
 
-func (u *lsSRv6SIDArangoMessage) StackableItem() {
-	// Noop function, just to comply with Stackable interface
+func (s *lsSRv6SIDArangoMessage) MakeKey() string {
+	return s.IGPRouterID + "_" + s.SRv6SID
 }
 
 func (c *collection) lsSRv6SIDHandler() {
@@ -36,7 +36,7 @@ func (c *collection) lsSRv6SIDHandler() {
 				glog.Errorf("failed to unmarshal LS SRv6 SID message with error: %+v", err)
 				continue
 			}
-			k := o.IGPRouterID + "_" + o.SRv6SID
+			k := o.MakeKey()
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it

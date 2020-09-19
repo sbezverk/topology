@@ -1,19 +1,19 @@
 package arangodb
 
-type StackItem interface {
-	StackableItem()
-}
+// type StackItem interface {
+// 	StackableItem()
+// }
 
 type FIFO interface {
-	Push(StackItem)
-	Pop() StackItem
+	Push(DBRecord)
+	Pop() DBRecord
 	Len() int
 }
 
 type entry struct {
 	next     *entry
 	previous *entry
-	data     StackItem
+	data     DBRecord
 }
 type fifo struct {
 	head *entry
@@ -21,7 +21,7 @@ type fifo struct {
 	len  int
 }
 
-func (f *fifo) Push(o StackItem) {
+func (f *fifo) Push(o DBRecord) {
 	// Empty stack case
 	e := &entry{
 		next: f.tail,
@@ -37,7 +37,7 @@ func (f *fifo) Push(o StackItem) {
 	f.len++
 }
 
-func (f *fifo) Pop() StackItem {
+func (f *fifo) Pop() DBRecord {
 	if f.head == nil {
 		// Stack is empty
 		return nil

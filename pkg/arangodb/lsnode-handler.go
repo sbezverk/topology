@@ -13,8 +13,8 @@ type lsNodeArangoMessage struct {
 	*message.LSNode
 }
 
-func (u *lsNodeArangoMessage) StackableItem() {
-	// Noop function, just to comply with Stackable interface
+func (n *lsNodeArangoMessage) MakeKey() string {
+	return n.RouterIP + "_" + n.PeerIP
 }
 
 func (c *collection) lsNodeHandler() {
@@ -36,7 +36,7 @@ func (c *collection) lsNodeHandler() {
 				glog.Errorf("failed to unmarshal LS Node message with error: %+v", err)
 				continue
 			}
-			k := o.RouterIP + "_" + o.PeerIP
+			k := o.MakeKey()
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it

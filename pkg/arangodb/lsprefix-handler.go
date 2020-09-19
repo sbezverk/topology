@@ -14,8 +14,8 @@ type lsPrefixArangoMessage struct {
 	*message.LSPrefix
 }
 
-func (u *lsPrefixArangoMessage) StackableItem() {
-	// Noop function, just to comply with Stackable interface
+func (p *lsPrefixArangoMessage) MakeKey() string {
+	return p.Prefix + "_" + strconv.Itoa(int(p.PrefixLen)) + "_" + p.IGPRouterID
 }
 
 func (c *collection) lsPrefixHandler() {
@@ -37,7 +37,7 @@ func (c *collection) lsPrefixHandler() {
 				glog.Errorf("failed to unmarshal LS Prefix message with error: %+v", err)
 				continue
 			}
-			k := o.Prefix + "_" + strconv.Itoa(int(o.PrefixLen)) + "_" + o.IGPRouterID
+			k := o.MakeKey()
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it

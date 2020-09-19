@@ -10,7 +10,6 @@ import (
 	"github.com/sbezverk/gobmp/pkg/tools"
 	"github.com/sbezverk/topology/pkg/dbclient"
 	"github.com/sbezverk/topology/pkg/locker"
-	"go.uber.org/atomic"
 )
 
 const (
@@ -28,60 +27,6 @@ var (
 		bmp.UnicastPrefixMsg: "UnicastPrefix_Test",
 	}
 )
-
-type result struct {
-	key string
-	err error
-}
-
-type collectionInfo struct {
-	name    string
-	handler func()
-}
-
-type queueMsg struct {
-	msgType int
-	msgData []byte
-}
-
-type stats struct {
-	total  atomic.Int64
-	failed atomic.Int64
-}
-
-type Collection interface {
-	Add(string, driver.Collection)
-	Delete(string)
-	Check(string) (driver.Collection, bool)
-}
-
-type collection struct {
-	queue           chan *queueMsg
-	stats           *stats
-	stop            chan struct{}
-	topicCollection driver.Collection
-	name            string
-	collectionType  int
-	handler         func()
-	arango          *arangoDB
-}
-
-func (c *collection) processError(r *result) bool {
-	switch {
-	// Condition when a collection was deleted while the topology was running
-	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
-		if err := c.arango.ensureCollection(c.name, c.collectionType); err != nil {
-			return true
-		}
-		return false
-	case driver.IsPreconditionFailed(r.err):
-		glog.Errorf("precondition for %+v failed", r.key)
-		return false
-	default:
-		glog.Errorf("failed to add document %s with error: %+v", r.key, r.err)
-		return true
-	}
-}
 
 type arangoDB struct {
 	dbclient.DB
@@ -145,7 +90,7 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 			a.collections[collectionType].handler = a.collections[collectionType].lsSRv6SIDHandler
 			//		case bmp.L3VPNMsg:
 		case bmp.UnicastPrefixMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].unicastPrefixHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		default:
 			return fmt.Errorf("unknown collection type %d", collectionType)
 		}

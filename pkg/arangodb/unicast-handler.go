@@ -18,6 +18,10 @@ func (u *unicastPrefixArangoMessage) StackableItem() {
 	// Noop function, just to comply with Stackable interface
 }
 
+func (u *unicastPrefixArangoMessage) MakeKey() string {
+	return u.Prefix + "_" + strconv.Itoa(int(u.PrefixLen)) + "_" + u.PeerIP
+}
+
 func (c *collection) unicastPrefixHandler() {
 	glog.Infof("Starting Unicast Prefix handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing

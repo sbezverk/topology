@@ -12,7 +12,7 @@ func TestFIFO(t *testing.T) {
 		name   string
 		total  int
 		index  int
-		expect StackItem
+		expect DBRecord
 	}{
 		{
 			name:   "empty stack",
@@ -91,7 +91,7 @@ func TestFIFO(t *testing.T) {
 			}
 			ff.Push(m)
 		}
-		var result StackItem
+		var result DBRecord
 		for i := 0; i < tt.index; i++ {
 			result = ff.Pop()
 		}

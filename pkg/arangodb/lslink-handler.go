@@ -3,22 +3,23 @@ package arangodb
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-type peerStateChangeArangoMessage struct {
-	*message.PeerStateChange
+type lsLinkArangoMessage struct {
+	*message.LSLink
 }
 
-func (u *peerStateChangeArangoMessage) StackableItem() {
+func (u *lsLinkArangoMessage) StackableItem() {
 	// Noop function, just to comply with Stackable interface
 }
 
-func (c *collection) peerStateChangeHandler() {
-	glog.Infof("Starting Peer State Change handler...")
+func (c *collection) lsLinkHandler() {
+	glog.Infof("Starting LS Link handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
 	// a go routine for the key
 	keyStore := make(map[string]bool)
@@ -31,12 +32,32 @@ func (c *collection) peerStateChangeHandler() {
 	for {
 		select {
 		case m := <-c.queue:
-			var o peerStateChangeArangoMessage
+			var o lsLinkArangoMessage
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
-				glog.Errorf("failed to unmarshal Peer State Change message with error: %+v", err)
+				glog.Errorf("failed to unmarshal LS Link message with error: %+v", err)
 				continue
 			}
-			k := o.RouterIP
+			var localIP, remoteIP, localID, remoteID string
+			switch o.MTID {
+			case 0:
+				localIP = "0.0.0.0"
+				remoteIP = "0.0.0.0"
+			case 2:
+				localIP = "::"
+				remoteIP = "::"
+			default:
+				localIP = "unknown-mt-id"
+				remoteIP = "unknown-mt-id"
+			}
+			if len(o.LocalLinkIP) != 0 {
+				localIP = o.LocalLinkIP[0]
+			}
+			if len(o.RemoteLinkIP) != 0 {
+				remoteIP = o.RemoteLinkIP[0]
+			}
+			localID = strconv.Itoa(int(o.LocalLinkID))
+			remoteID = strconv.Itoa(int(o.RemoteLinkID))
+			k := o.IGPRouterID + "_" + localIP + "_" + localID + "_" + o.RemoteIGPRouterID + "_" + remoteIP + "_" + remoteID
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it
@@ -52,14 +73,14 @@ func (c *collection) peerStateChangeHandler() {
 			// Depositing one token and calling worker to process message for the key
 			tokens <- struct{}{}
 			keyStore[k] = true
-			go c.peerStateChangeWorker(k, &o, done, tokens)
+			go c.lsLinkWorker(k, &o, done, tokens)
 		case r := <-done:
 			if r.err != nil {
 				// Error was encountered during processing of the key
 				if c.processError(r) {
-					glog.Errorf("peerStateChangeWorker for key: %s reported a fatal error: %+v", r.key, r.err)
+					glog.Errorf("lsLinkWorker for key: %s reported a fatal error: %+v", r.key, r.err)
 				}
-				glog.Errorf("peerStateChangeWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
+				glog.Errorf("lsLinkWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it
@@ -71,7 +92,7 @@ func (c *collection) peerStateChangeHandler() {
 			if bo != nil {
 				tokens <- struct{}{}
 				keyStore[r.key] = true
-				go c.peerStateChangeWorker(r.key, bo.(*peerStateChangeArangoMessage), done, tokens)
+				go c.lsLinkWorker(r.key, bo.(*lsLinkArangoMessage), done, tokens)
 			}
 			if b.Len() == 0 {
 				delete(backlog, r.key)
@@ -82,7 +103,7 @@ func (c *collection) peerStateChangeHandler() {
 	}
 }
 
-func (c *collection) peerStateChangeWorker(k string, obj *peerStateChangeArangoMessage, done chan *result, tokens chan struct{}) {
+func (c *collection) lsLinkWorker(k string, obj *lsLinkArangoMessage, done chan *result, tokens chan struct{}) {
 	var err error
 	defer func() {
 		<-tokens

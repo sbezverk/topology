@@ -27,8 +27,8 @@ func (c *collection) unicastPrefixHandler() {
 	backlog := make(map[string]FIFO)
 	// tokens are used to control a number of concurrent goroutine accessing the same collection, to prevent
 	// conflicting database changes, each go routine processes a message with the unique key.
-	tokens := make(chan struct{}, 1024)
-	done := make(chan *result, 2048)
+	tokens := make(chan struct{}, concurrentWorkers)
+	done := make(chan *result, concurrentWorkers*2)
 	for {
 		select {
 		case m := <-c.queue:

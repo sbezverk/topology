@@ -9,16 +9,16 @@ import (
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-type peerStateChangeArangoMessage struct {
-	*message.PeerStateChange
+type lsSRv6SIDArangoMessage struct {
+	*message.LSSRv6SID
 }
 
-func (u *peerStateChangeArangoMessage) StackableItem() {
+func (u *lsSRv6SIDArangoMessage) StackableItem() {
 	// Noop function, just to comply with Stackable interface
 }
 
-func (c *collection) peerStateChangeHandler() {
-	glog.Infof("Starting Peer State Change handler...")
+func (c *collection) lsSRv6SIDHandler() {
+	glog.Infof("Starting LS SRv6 SID handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
 	// a go routine for the key
 	keyStore := make(map[string]bool)
@@ -31,12 +31,12 @@ func (c *collection) peerStateChangeHandler() {
 	for {
 		select {
 		case m := <-c.queue:
-			var o peerStateChangeArangoMessage
+			var o lsSRv6SIDArangoMessage
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
-				glog.Errorf("failed to unmarshal Peer State Change message with error: %+v", err)
+				glog.Errorf("failed to unmarshal LS SRv6 SID message with error: %+v", err)
 				continue
 			}
-			k := o.RouterIP
+			k := o.IGPRouterID + "_" + o.SRv6SID
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it
@@ -52,14 +52,14 @@ func (c *collection) peerStateChangeHandler() {
 			// Depositing one token and calling worker to process message for the key
 			tokens <- struct{}{}
 			keyStore[k] = true
-			go c.peerStateChangeWorker(k, &o, done, tokens)
+			go c.lsSRv6SIDWorker(k, &o, done, tokens)
 		case r := <-done:
 			if r.err != nil {
 				// Error was encountered during processing of the key
 				if c.processError(r) {
-					glog.Errorf("peerStateChangeWorker for key: %s reported a fatal error: %+v", r.key, r.err)
+					glog.Errorf("lsSRv6SIDWorker for key: %s reported a fatal error: %+v", r.key, r.err)
 				}
-				glog.Errorf("peerStateChangeWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
+				glog.Errorf("lsSRv6SIDWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it
@@ -71,7 +71,7 @@ func (c *collection) peerStateChangeHandler() {
 			if bo != nil {
 				tokens <- struct{}{}
 				keyStore[r.key] = true
-				go c.peerStateChangeWorker(r.key, bo.(*peerStateChangeArangoMessage), done, tokens)
+				go c.lsSRv6SIDWorker(r.key, bo.(*lsSRv6SIDArangoMessage), done, tokens)
 			}
 			if b.Len() == 0 {
 				delete(backlog, r.key)
@@ -82,7 +82,7 @@ func (c *collection) peerStateChangeHandler() {
 	}
 }
 
-func (c *collection) peerStateChangeWorker(k string, obj *peerStateChangeArangoMessage, done chan *result, tokens chan struct{}) {
+func (c *collection) lsSRv6SIDWorker(k string, obj *lsSRv6SIDArangoMessage, done chan *result, tokens chan struct{}) {
 	var err error
 	defer func() {
 		<-tokens

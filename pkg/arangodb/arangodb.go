@@ -13,13 +13,17 @@ import (
 	"go.uber.org/atomic"
 )
 
+const (
+	concurrentWorkers = 1024
+)
+
 var (
 	collections = map[int]string{
 		bmp.PeerStateChangeMsg: "Node_Test",
-		//		bmp.LSLinkMsg:          "",
-		//		bmp.LSNodeMsg:          "",
-		//		bmp.LSPrefixMsg:        "",
-		//		bmp.LSSRv6SIDMsg:       "",
+		bmp.LSLinkMsg:          "LSLink_Test",
+		bmp.LSNodeMsg:          "LSNode_Test",
+		bmp.LSPrefixMsg:        "LSPrefix_Test",
+		bmp.LSSRv6SIDMsg:       "LSSRv6SID_Test",
 		//		bmp.L3VPNMsg:           "",
 		bmp.UnicastPrefixMsg: "UnicastPrefix_Test",
 	}
@@ -55,7 +59,6 @@ type collection struct {
 	queue           chan *queueMsg
 	stats           *stats
 	stop            chan struct{}
-	lckr            locker.Locker
 	topicCollection driver.Collection
 	name            string
 	collectionType  int
@@ -132,10 +135,14 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 		switch collectionType {
 		case bmp.PeerStateChangeMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].peerStateChangeHandler
-			//		case bmp.LSLinkMsg:
-			//		case bmp.LSNodeMsg:
-			//		case bmp.LSPrefixMsg:
-			//		case bmp.LSSRv6SIDMsg:
+		case bmp.LSLinkMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].lsLinkHandler
+		case bmp.LSNodeMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].lsNodeHandler
+		case bmp.LSPrefixMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].lsPrefixHandler
+		case bmp.LSSRv6SIDMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].lsSRv6SIDHandler
 			//		case bmp.L3VPNMsg:
 		case bmp.UnicastPrefixMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].unicastPrefixHandler

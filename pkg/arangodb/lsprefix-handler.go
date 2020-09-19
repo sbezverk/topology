@@ -3,22 +3,23 @@ package arangodb
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/message"
 )
 
-type peerStateChangeArangoMessage struct {
-	*message.PeerStateChange
+type lsPrefixArangoMessage struct {
+	*message.LSPrefix
 }
 
-func (u *peerStateChangeArangoMessage) StackableItem() {
+func (u *lsPrefixArangoMessage) StackableItem() {
 	// Noop function, just to comply with Stackable interface
 }
 
-func (c *collection) peerStateChangeHandler() {
-	glog.Infof("Starting Peer State Change handler...")
+func (c *collection) lsPrefixHandler() {
+	glog.Infof("Starting LS Prefix handler...")
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
 	// a go routine for the key
 	keyStore := make(map[string]bool)
@@ -31,12 +32,12 @@ func (c *collection) peerStateChangeHandler() {
 	for {
 		select {
 		case m := <-c.queue:
-			var o peerStateChangeArangoMessage
+			var o lsPrefixArangoMessage
 			if err := json.Unmarshal(m.msgData, &o); err != nil {
-				glog.Errorf("failed to unmarshal Peer State Change message with error: %+v", err)
+				glog.Errorf("failed to unmarshal LS Prefix message with error: %+v", err)
 				continue
 			}
-			k := o.RouterIP
+			k := o.Prefix + "_" + strconv.Itoa(int(o.PrefixLen)) + "_" + o.IGPRouterID
 			busy, ok := keyStore[k]
 			if ok && busy {
 				// Check if there is already a backlog for this key, if not then create it
@@ -52,14 +53,14 @@ func (c *collection) peerStateChangeHandler() {
 			// Depositing one token and calling worker to process message for the key
 			tokens <- struct{}{}
 			keyStore[k] = true
-			go c.peerStateChangeWorker(k, &o, done, tokens)
+			go c.lsPrefixWorker(k, &o, done, tokens)
 		case r := <-done:
 			if r.err != nil {
 				// Error was encountered during processing of the key
 				if c.processError(r) {
-					glog.Errorf("peerStateChangeWorker for key: %s reported a fatal error: %+v", r.key, r.err)
+					glog.Errorf("lsPrefixWorker for key: %s reported a fatal error: %+v", r.key, r.err)
 				}
-				glog.Errorf("peerStateChangeWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
+				glog.Errorf("lsPrefixWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it
@@ -71,7 +72,7 @@ func (c *collection) peerStateChangeHandler() {
 			if bo != nil {
 				tokens <- struct{}{}
 				keyStore[r.key] = true
-				go c.peerStateChangeWorker(r.key, bo.(*peerStateChangeArangoMessage), done, tokens)
+				go c.lsPrefixWorker(r.key, bo.(*lsPrefixArangoMessage), done, tokens)
 			}
 			if b.Len() == 0 {
 				delete(backlog, r.key)
@@ -82,7 +83,7 @@ func (c *collection) peerStateChangeHandler() {
 	}
 }
 
-func (c *collection) peerStateChangeWorker(k string, obj *peerStateChangeArangoMessage, done chan *result, tokens chan struct{}) {
+func (c *collection) lsPrefixWorker(k string, obj *lsPrefixArangoMessage, done chan *result, tokens chan struct{}) {
 	var err error
 	defer func() {
 		<-tokens

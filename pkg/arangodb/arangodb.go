@@ -23,8 +23,8 @@ var (
 		bmp.LSNodeMsg:          "LSNode_Test",
 		bmp.LSPrefixMsg:        "LSPrefix_Test",
 		bmp.LSSRv6SIDMsg:       "LSSRv6SID_Test",
-		//		bmp.L3VPNMsg:           "",
-		bmp.UnicastPrefixMsg: "UnicastPrefix_Test",
+		bmp.L3VPNMsg:           "L3VPN_Prefix_Test",
+		bmp.UnicastPrefixMsg:   "UnicastPrefix_Test",
 	}
 )
 
@@ -88,7 +88,8 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSSRv6SIDMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
-			//		case bmp.L3VPNMsg:
+		case bmp.L3VPNMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.UnicastPrefixMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		default:

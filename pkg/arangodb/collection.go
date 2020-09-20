@@ -185,7 +185,14 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsSRv6SIDArangoMessage).ID = c.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
-		// TODO
+		obj = o.(*l3VPNArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover l3VPNArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*l3VPNArangoMessage).Key = k
+		obj.(*l3VPNArangoMessage).ID = c.name + "/" + k
+		action = obj.(*l3VPNArangoMessage).Action
 	case bmp.UnicastPrefixMsg:
 		obj = o.(*unicastPrefixArangoMessage)
 		if !ok {
@@ -261,6 +268,11 @@ func newDBRecord(msgData []byte, collectionType int) (DBRecord, error) {
 		}
 		return &o, nil
 	case bmp.L3VPNMsg:
+		var o l3VPNArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.UnicastPrefixMsg:
 		var o unicastPrefixArangoMessage
 		if err := json.Unmarshal(msgData, &o); err != nil {

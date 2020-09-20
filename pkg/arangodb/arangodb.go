@@ -79,15 +79,15 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 		}
 		switch collectionType {
 		case bmp.PeerStateChangeMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].peerStateChangeHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSLinkMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].lsLinkHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSNodeMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].lsNodeHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSPrefixMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].lsPrefixHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSSRv6SIDMsg:
-			a.collections[collectionType].handler = a.collections[collectionType].lsSRv6SIDHandler
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 			//		case bmp.L3VPNMsg:
 		case bmp.UnicastPrefixMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler

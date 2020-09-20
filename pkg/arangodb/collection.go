@@ -136,16 +136,62 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	}()
 	ctx := context.TODO()
 	var obj interface{}
+	var ok bool
 	var action string
 	switch c.collectionType {
 	case bmp.PeerStateChangeMsg:
+		obj, ok = o.(*peerStateChangeArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover peerStateChangeArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*peerStateChangeArangoMessage).Key = k
+		obj.(*peerStateChangeArangoMessage).ID = c.name + "/" + k
+		action = obj.(*peerStateChangeArangoMessage).Action
 	case bmp.LSLinkMsg:
+		obj = o.(*lsLinkArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover lsLinkArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*lsLinkArangoMessage).Key = k
+		obj.(*lsLinkArangoMessage).ID = c.name + "/" + k
+		action = obj.(*lsLinkArangoMessage).Action
 	case bmp.LSNodeMsg:
+		obj = o.(*lsNodeArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover lsNodeArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*lsNodeArangoMessage).Key = k
+		obj.(*lsNodeArangoMessage).ID = c.name + "/" + k
+		action = obj.(*lsNodeArangoMessage).Action
 	case bmp.LSPrefixMsg:
+		obj = o.(*lsPrefixArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover lsPrefixArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*lsPrefixArangoMessage).Key = k
+		obj.(*lsPrefixArangoMessage).ID = c.name + "/" + k
+		action = obj.(*lsPrefixArangoMessage).Action
 	case bmp.LSSRv6SIDMsg:
+		obj = o.(*lsSRv6SIDArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover lsSRv6SIDArangoMessage from DBRecord interface")
+			return
+		}
+		obj.(*lsSRv6SIDArangoMessage).Key = k
+		obj.(*lsSRv6SIDArangoMessage).ID = c.name + "/" + k
+		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
+		// TODO
 	case bmp.UnicastPrefixMsg:
 		obj = o.(*unicastPrefixArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover unicastPrefixArangoMessage from DBRecord interface")
+			return
+		}
 		obj.(*unicastPrefixArangoMessage).Key = k
 		obj.(*unicastPrefixArangoMessage).ID = c.name + "/" + k
 		action = obj.(*unicastPrefixArangoMessage).Action
@@ -185,10 +231,35 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 func newDBRecord(msgData []byte, collectionType int) (DBRecord, error) {
 	switch collectionType {
 	case bmp.PeerStateChangeMsg:
+		var o peerStateChangeArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.LSLinkMsg:
+		var o lsLinkArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.LSNodeMsg:
+		var o lsNodeArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.LSPrefixMsg:
+		var o lsPrefixArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.LSSRv6SIDMsg:
+		var o lsSRv6SIDArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
 	case bmp.L3VPNMsg:
 	case bmp.UnicastPrefixMsg:
 		var o unicastPrefixArangoMessage

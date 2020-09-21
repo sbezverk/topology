@@ -149,7 +149,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*peerStateChangeArangoMessage).ID = c.name + "/" + k
 		action = obj.(*peerStateChangeArangoMessage).Action
 	case bmp.LSLinkMsg:
-		obj = o.(*lsLinkArangoMessage)
+		obj, ok = o.(*lsLinkArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover lsLinkArangoMessage from DBRecord interface")
 			return
@@ -158,7 +158,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsLinkArangoMessage).ID = c.name + "/" + k
 		action = obj.(*lsLinkArangoMessage).Action
 	case bmp.LSNodeMsg:
-		obj = o.(*lsNodeArangoMessage)
+		obj, ok = o.(*lsNodeArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover lsNodeArangoMessage from DBRecord interface")
 			return
@@ -167,7 +167,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsNodeArangoMessage).ID = c.name + "/" + k
 		action = obj.(*lsNodeArangoMessage).Action
 	case bmp.LSPrefixMsg:
-		obj = o.(*lsPrefixArangoMessage)
+		obj, ok = o.(*lsPrefixArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover lsPrefixArangoMessage from DBRecord interface")
 			return
@@ -176,7 +176,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsPrefixArangoMessage).ID = c.name + "/" + k
 		action = obj.(*lsPrefixArangoMessage).Action
 	case bmp.LSSRv6SIDMsg:
-		obj = o.(*lsSRv6SIDArangoMessage)
+		obj, ok = o.(*lsSRv6SIDArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover lsSRv6SIDArangoMessage from DBRecord interface")
 			return
@@ -185,7 +185,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsSRv6SIDArangoMessage).ID = c.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
-		obj = o.(*l3VPNArangoMessage)
+		obj, ok = o.(*l3VPNArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover l3VPNArangoMessage from DBRecord interface")
 			return
@@ -194,7 +194,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*l3VPNArangoMessage).ID = c.name + "/" + k
 		action = obj.(*l3VPNArangoMessage).Action
 	case bmp.UnicastPrefixMsg:
-		obj = o.(*unicastPrefixArangoMessage)
+		obj, ok = o.(*unicastPrefixArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover unicastPrefixArangoMessage from DBRecord interface")
 			return

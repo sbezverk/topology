@@ -8,6 +8,7 @@ import (
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/bmp"
+	"github.com/sbezverk/topology/pkg/kafkanotifier"
 	"go.uber.org/atomic"
 )
 
@@ -16,8 +17,9 @@ type DBRecord interface {
 }
 
 type result struct {
-	key string
-	err error
+	key    string
+	action string
+	err    error
 }
 
 type queueMsg struct {
@@ -102,6 +104,16 @@ func (c *collection) genericHandler() {
 				}
 				glog.Errorf("genericWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 			}
+			if c.arango.notifyCompletion && c.arango.notifier != nil {
+				if err := c.arango.notifier.EventNotification(&kafkanotifier.Message{
+					TopicType: c.collectionType,
+					Key:       r.key,
+					ID:        c.name + "/" + r.key,
+					Action:    r.action,
+				}); err != nil {
+					glog.Errorf("genericWorker for key: %s failed to send notification with error: %+v", r.key, r.err)
+				}
+			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it
 			b, ok := backlog[r.key]
@@ -126,9 +138,10 @@ func (c *collection) genericHandler() {
 
 func (c *collection) genericWorker(k string, o DBRecord, done chan *result, tokens chan struct{}) {
 	var err error
+	var action string
 	defer func() {
 		<-tokens
-		done <- &result{key: k, err: err}
+		done <- &result{key: k, action: action, err: err}
 		if err == nil {
 			c.stats.total.Add(1)
 		}
@@ -137,7 +150,6 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	ctx := context.TODO()
 	var obj interface{}
 	var ok bool
-	var action string
 	switch c.collectionType {
 	case bmp.PeerStateChangeMsg:
 		obj, ok = o.(*peerStateChangeArangoMessage)
@@ -205,7 +217,6 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	default:
 		err = fmt.Errorf("unknown collection type %d", c.collectionType)
 		return
-
 	}
 	switch action {
 	case "add":
@@ -223,6 +234,8 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 				err = e
 				break
 			}
+			// Fixing action in result message to the actual action occured
+			action = "update"
 		}
 	case "del":
 		if _, e := c.topicCollection.RemoveDocument(ctx, k); e != nil {

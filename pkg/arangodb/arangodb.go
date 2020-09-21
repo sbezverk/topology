@@ -9,6 +9,7 @@ import (
 	"github.com/sbezverk/gobmp/pkg/bmp"
 	"github.com/sbezverk/gobmp/pkg/tools"
 	"github.com/sbezverk/topology/pkg/dbclient"
+	"github.com/sbezverk/topology/pkg/kafkanotifier"
 	"github.com/sbezverk/topology/pkg/locker"
 )
 
@@ -31,13 +32,15 @@ var (
 type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
-	stop        chan struct{}
-	lckr        locker.Locker
-	collections map[int]*collection
+	stop             chan struct{}
+	lckr             locker.Locker
+	collections      map[int]*collection
+	notifyCompletion bool
+	notifier         kafkanotifier.Event
 }
 
 // NewDBSrvClient returns an instance of a DB server client process
-func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) {
+func NewDBSrvClient(arangoSrv, user, pass, dbname string, notifier kafkanotifier.Event) (dbclient.Srv, error) {
 	if err := tools.URLAddrValidation(arangoSrv); err != nil {
 		return nil, err
 	}
@@ -56,7 +59,10 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string) (dbclient.Srv, error) 
 	}
 	arango.DB = arango
 	arango.ArangoConn = arangoConn
-
+	if notifier != nil {
+		arango.notifyCompletion = true
+		arango.notifier = notifier
+	}
 	// Init collections
 	for t, n := range collections {
 		if err := arango.ensureCollection(n, t); err != nil {

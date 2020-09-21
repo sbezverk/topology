@@ -48,6 +48,8 @@ spec:
             - "root"
             - --database-pass
             - "jalapeno"
+            - --notify-event
+            - "true"
           image: docker.io/sbezverk/topology:wipsquare
           imagePullPolicy: Always
           name: topology

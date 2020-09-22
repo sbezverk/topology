@@ -15,14 +15,14 @@ import (
 
 // Define constants for each topic name
 const (
-	peerTopic             = "gobmp.parsed.peer_events"
-	unicastMessageTopic   = "gobmp.parsed.unicast_prefix_events"
-	lsNodeMessageTopic    = "gobmp.parsed.ls_node_events"
-	lsLinkMessageTopic    = "gobmp.parsed.ls_link_events"
-	l3vpnMessageTopic     = "gobmp.parsed.l3vpn_events"
-	lsPrefixMessageTopic  = "gobmp.parsed.ls_prefix_events"
-	lsSRv6SIDMessageTopic = "gobmp.parsed.ls_srv6_sid_events"
-	evpnMessageTopic      = "gobmp.parsed.evpn_events"
+	PeerEventTopic          = "gobmp.parsed.peer_events"
+	UnicastPrefixEventTopic = "gobmp.parsed.unicast_prefix_events"
+	LSNodeEventTopic        = "gobmp.parsed.ls_node_events"
+	LSLinkEventTopic        = "gobmp.parsed.ls_link_events"
+	L3VPNEventTopic         = "gobmp.parsed.l3vpn_events"
+	LSPrefixEventTopic      = "gobmp.parsed.ls_prefix_events"
+	LSSRv6SIDEventTopic     = "gobmp.parsed.ls_srv6_sid_events"
+	EVPNEventTopic          = "gobmp.parsed.evpn_events"
 )
 
 var (
@@ -34,18 +34,18 @@ var (
 	// topics defines a list of topic to initialize and connect,
 	// initialization is done as a part of NewKafkaPublisher func.
 	topicNames = []string{
-		peerTopic,
-		unicastMessageTopic,
-		lsNodeMessageTopic,
-		lsLinkMessageTopic,
-		l3vpnMessageTopic,
-		lsPrefixMessageTopic,
-		lsSRv6SIDMessageTopic,
-		evpnMessageTopic,
+		PeerEventTopic,
+		UnicastPrefixEventTopic,
+		LSNodeEventTopic,
+		LSLinkEventTopic,
+		L3VPNEventTopic,
+		LSPrefixEventTopic,
+		LSSRv6SIDEventTopic,
+		EVPNEventTopic,
 	}
 )
 
-type Message struct {
+type EventMessage struct {
 	TopicType int
 	Key       string
 	ID        string
@@ -53,7 +53,7 @@ type Message struct {
 }
 
 type Event interface {
-	EventNotification(*Message) error
+	EventNotification(*EventMessage) error
 }
 
 type notifier struct {
@@ -62,24 +62,24 @@ type notifier struct {
 	producer sarama.SyncProducer
 }
 
-func (n *notifier) EventNotification(msg *Message) error {
+func (n *notifier) EventNotification(msg *EventMessage) error {
 	switch msg.TopicType {
 	case bmp.PeerStateChangeMsg:
-		return n.triggerNotification(peerTopic, msg)
+		return n.triggerNotification(PeerEventTopic, msg)
 	case bmp.UnicastPrefixMsg:
-		return n.triggerNotification(unicastMessageTopic, msg)
+		return n.triggerNotification(UnicastPrefixEventTopic, msg)
 	case bmp.LSNodeMsg:
-		return n.triggerNotification(lsNodeMessageTopic, msg)
+		return n.triggerNotification(LSNodeEventTopic, msg)
 	case bmp.LSLinkMsg:
-		return n.triggerNotification(lsLinkMessageTopic, msg)
+		return n.triggerNotification(LSLinkEventTopic, msg)
 	case bmp.L3VPNMsg:
-		return n.triggerNotification(l3vpnMessageTopic, msg)
+		return n.triggerNotification(L3VPNEventTopic, msg)
 	case bmp.LSPrefixMsg:
-		return n.triggerNotification(lsPrefixMessageTopic, msg)
+		return n.triggerNotification(LSPrefixEventTopic, msg)
 	case bmp.LSSRv6SIDMsg:
-		return n.triggerNotification(lsSRv6SIDMessageTopic, msg)
+		return n.triggerNotification(LSSRv6SIDEventTopic, msg)
 	case bmp.EVPNMsg:
-		return n.triggerNotification(evpnMessageTopic, msg)
+		return n.triggerNotification(EVPNEventTopic, msg)
 	}
 
 	return fmt.Errorf("unknown topic type %d", msg.TopicType)
@@ -125,7 +125,7 @@ func NewKafkaNotifier(kafkaSrv string) (Event, error) {
 	}, nil
 }
 
-func (n *notifier) triggerNotification(topic string, msg *Message) error {
+func (n *notifier) triggerNotification(topic string, msg *EventMessage) error {
 	k := sarama.ByteEncoder{}
 	k = []byte(msg.Key)
 	m := sarama.ByteEncoder{}

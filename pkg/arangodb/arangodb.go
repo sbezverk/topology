@@ -10,7 +10,6 @@ import (
 	"github.com/sbezverk/gobmp/pkg/tools"
 	"github.com/sbezverk/topology/pkg/dbclient"
 	"github.com/sbezverk/topology/pkg/kafkanotifier"
-	"github.com/sbezverk/topology/pkg/locker"
 )
 
 const (
@@ -33,7 +32,6 @@ type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
 	stop             chan struct{}
-	lckr             locker.Locker
 	collections      map[int]*collection
 	notifyCompletion bool
 	notifier         kafkanotifier.Event

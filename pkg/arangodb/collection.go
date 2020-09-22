@@ -105,7 +105,7 @@ func (c *collection) genericHandler() {
 				glog.Errorf("genericWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 			}
 			if c.arango.notifyCompletion && c.arango.notifier != nil {
-				if err := c.arango.notifier.EventNotification(&kafkanotifier.Message{
+				if err := c.arango.notifier.EventNotification(&kafkanotifier.EventMessage{
 					TopicType: c.collectionType,
 					Key:       r.key,
 					ID:        c.name + "/" + r.key,

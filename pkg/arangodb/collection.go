@@ -37,17 +37,19 @@ type collection struct {
 	stats           *stats
 	stop            chan struct{}
 	topicCollection driver.Collection
-	name            string
-	collectionType  int
-	handler         func()
-	arango          *arangoDB
+	//	name            string
+	collectionType int // TODO Add enumeration by bmp message type
+	//	isVertex        bool // If set to true the collection is created as a vertex collection, required to be able to build edge topologies
+	handler    func()
+	arango     *arangoDB
+	properties *collectionProperties
 }
 
 func (c *collection) processError(r *result) bool {
 	switch {
 	// Condition when a collection was deleted while the topology was running
 	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
-		if err := c.arango.ensureCollection(c.name, c.collectionType); err != nil {
+		if err := c.arango.ensureCollection(c.properties, c.collectionType); err != nil {
 			return true
 		}
 		return false
@@ -108,7 +110,7 @@ func (c *collection) genericHandler() {
 				if err := c.arango.notifier.EventNotification(&kafkanotifier.EventMessage{
 					TopicType: c.collectionType,
 					Key:       r.key,
-					ID:        c.name + "/" + r.key,
+					ID:        c.properties.name + "/" + r.key,
 					Action:    r.action,
 				}); err != nil {
 					glog.Errorf("genericWorker for key: %s failed to send notification with error: %+v", r.key, r.err)
@@ -158,7 +160,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*peerStateChangeArangoMessage).Key = k
-		obj.(*peerStateChangeArangoMessage).ID = c.name + "/" + k
+		obj.(*peerStateChangeArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*peerStateChangeArangoMessage).Action
 	case bmp.LSLinkMsg:
 		obj, ok = o.(*lsLinkArangoMessage)
@@ -167,7 +169,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*lsLinkArangoMessage).Key = k
-		obj.(*lsLinkArangoMessage).ID = c.name + "/" + k
+		obj.(*lsLinkArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsLinkArangoMessage).Action
 	case bmp.LSNodeMsg:
 		obj, ok = o.(*lsNodeArangoMessage)
@@ -176,7 +178,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*lsNodeArangoMessage).Key = k
-		obj.(*lsNodeArangoMessage).ID = c.name + "/" + k
+		obj.(*lsNodeArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsNodeArangoMessage).Action
 	case bmp.LSPrefixMsg:
 		obj, ok = o.(*lsPrefixArangoMessage)
@@ -185,7 +187,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*lsPrefixArangoMessage).Key = k
-		obj.(*lsPrefixArangoMessage).ID = c.name + "/" + k
+		obj.(*lsPrefixArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsPrefixArangoMessage).Action
 	case bmp.LSSRv6SIDMsg:
 		obj, ok = o.(*lsSRv6SIDArangoMessage)
@@ -194,7 +196,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*lsSRv6SIDArangoMessage).Key = k
-		obj.(*lsSRv6SIDArangoMessage).ID = c.name + "/" + k
+		obj.(*lsSRv6SIDArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
 		obj, ok = o.(*l3VPNArangoMessage)
@@ -203,7 +205,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*l3VPNArangoMessage).Key = k
-		obj.(*l3VPNArangoMessage).ID = c.name + "/" + k
+		obj.(*l3VPNArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*l3VPNArangoMessage).Action
 	case bmp.UnicastPrefixMsg:
 		obj, ok = o.(*unicastPrefixArangoMessage)
@@ -212,7 +214,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			return
 		}
 		obj.(*unicastPrefixArangoMessage).Key = k
-		obj.(*unicastPrefixArangoMessage).ID = c.name + "/" + k
+		obj.(*unicastPrefixArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*unicastPrefixArangoMessage).Action
 	default:
 		err = fmt.Errorf("unknown collection type %d", c.collectionType)

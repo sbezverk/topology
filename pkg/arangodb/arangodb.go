@@ -139,21 +139,22 @@ func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType int)
 
 func (a *arangoDB) ensureGraph(name string) (driver.Graph, error) {
 	var edgeDefinition driver.EdgeDefinition
-	edgeDefinition.Collection = name
+	edgeDefinition.Collection = name + "_Edge"
 	edgeDefinition.From = []string{name}
 	edgeDefinition.To = []string{name}
 
 	var options driver.CreateGraphOptions
 	options.EdgeDefinitions = []driver.EdgeDefinition{edgeDefinition}
 	graph, err := a.db.Graph(context.TODO(), name)
-	if err != nil {
-		if !driver.IsArangoErrorWithErrorNum(err, 1924) {
-			return nil, err
-		}
+	if err == nil {
+		graph.Remove(context.TODO())
 		return a.db.CreateGraph(context.TODO(), name, &options)
 	}
+	if !driver.IsArangoErrorWithErrorNum(err, 1924) {
+		return nil, err
+	}
 
-	return graph, nil
+	return a.db.CreateGraph(context.TODO(), name, &options)
 }
 
 func (a *arangoDB) Start() error {

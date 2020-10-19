@@ -41,7 +41,7 @@ spec:
             - --message-server
             - "kafka:9092"
             - --database-server
-            - "http://arangodb.arangodb:28529"
+            - "http://arangodb:28529"
             - --database-name
             - "jalapeno"
             - --database-user
@@ -50,7 +50,7 @@ spec:
             - "jalapeno"
             - --notify-event
             - "true"
-          image: docker.io/sbezverk/topology:wipsquare
+          image: docker.io/sbezverk/topology:wip
           imagePullPolicy: Always
           name: topology
           ports:

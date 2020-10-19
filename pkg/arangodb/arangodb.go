@@ -16,15 +16,23 @@ const (
 	concurrentWorkers = 1024
 )
 
+// collectionProperties defines a collection specific properties
+// TODO this information should be configurable without recompiling code.
+type collectionProperties struct {
+	name     string
+	isVertex bool
+	options  *driver.CreateCollectionOptions
+}
+
 var (
-	collections = map[int]string{
-		bmp.PeerStateChangeMsg: "Node_Test",
-		bmp.LSLinkMsg:          "LSLink_Test",
-		bmp.LSNodeMsg:          "LSNode_Test",
-		bmp.LSPrefixMsg:        "LSPrefix_Test",
-		bmp.LSSRv6SIDMsg:       "LSSRv6SID_Test",
-		bmp.L3VPNMsg:           "L3VPN_Prefix_Test",
-		bmp.UnicastPrefixMsg:   "UnicastPrefix_Test",
+	collections = map[int]*collectionProperties{
+		bmp.PeerStateChangeMsg: {name: "Node_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		bmp.LSLinkMsg:          {name: "LSLink_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		bmp.LSNodeMsg:          {name: "LSNode_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
+		bmp.LSPrefixMsg:        {name: "LSPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		bmp.LSSRv6SIDMsg:       {name: "LSSRv6SID_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		bmp.L3VPNMsg:           {name: "L3VPN_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		bmp.UnicastPrefixMsg:   {name: "UnicastPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 	}
 )
 
@@ -71,15 +79,15 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string, notifier kafkanotifier
 	return arango, nil
 }
 
-func (a *arangoDB) ensureCollection(name string, collectionType int) error {
+func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType int) error {
 	if _, ok := a.collections[collectionType]; !ok {
 		a.collections[collectionType] = &collection{
 			queue:          make(chan *queueMsg),
-			name:           name,
 			stats:          &stats{},
 			stop:           a.stop,
 			arango:         a,
 			collectionType: collectionType,
+			properties:     p,
 		}
 		switch collectionType {
 		case bmp.PeerStateChangeMsg:
@@ -100,16 +108,53 @@ func (a *arangoDB) ensureCollection(name string, collectionType int) error {
 			return fmt.Errorf("unknown collection type %d", collectionType)
 		}
 	}
-	ci, err := a.db.Collection(context.TODO(), a.collections[collectionType].name)
-	if err != nil {
-		if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+	var ci driver.Collection
+	var err error
+	// There are two possible collection types, base type and vertex type
+	if !a.collections[collectionType].properties.isVertex {
+		ci, err = a.db.Collection(context.TODO(), a.collections[collectionType].properties.name)
+		if err != nil {
+			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+				return err
+			}
+			ci, err = a.db.CreateCollection(context.TODO(), a.collections[collectionType].properties.name, a.collections[collectionType].properties.options)
+		}
+	} else {
+		graph, err := a.ensureGraph(a.collections[collectionType].properties.name)
+		if err != nil {
 			return err
 		}
-		ci, err = a.db.CreateCollection(context.TODO(), a.collections[collectionType].name, &driver.CreateCollectionOptions{})
+		ci, err = graph.VertexCollection(context.TODO(), a.collections[collectionType].properties.name)
+		if err != nil {
+			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+				return err
+			}
+			ci, err = graph.CreateVertexCollection(context.TODO(), a.collections[collectionType].properties.name)
+		}
 	}
 	a.collections[collectionType].topicCollection = ci
 
 	return nil
+}
+
+func (a *arangoDB) ensureGraph(name string) (driver.Graph, error) {
+	var edgeDefinition driver.EdgeDefinition
+	edgeDefinition.Collection = name + "_Edge"
+	edgeDefinition.From = []string{name}
+	edgeDefinition.To = []string{name}
+
+	var options driver.CreateGraphOptions
+	options.EdgeDefinitions = []driver.EdgeDefinition{edgeDefinition}
+	graph, err := a.db.Graph(context.TODO(), name)
+	if err == nil {
+		graph.Remove(context.TODO())
+		return a.db.CreateGraph(context.TODO(), name, &options)
+	}
+	if !driver.IsArangoErrorWithErrorNum(err, 1924) {
+		return nil, err
+	}
+
+	return a.db.CreateGraph(context.TODO(), name, &options)
 }
 
 func (a *arangoDB) Start() error {

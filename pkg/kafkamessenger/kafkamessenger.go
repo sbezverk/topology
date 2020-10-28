@@ -12,23 +12,31 @@ import (
 
 // Define constants for each topic name
 const (
-	peerTopic             = "gobmp.parsed.peer"
-	unicastMessageTopic   = "gobmp.parsed.unicast_prefix"
+	peerTopic = "gobmp.parsed.peer"
+	// unicastMessageTopic   = "gobmp.parsed.unicast_prefix"
+	unicastMessageV4Topic = "gobmp.parsed.unicast_prefixv4"
+	unicastMessageV6Topic = "gobmp.parsed.unicast_prefixv6"
 	lsNodeMessageTopic    = "gobmp.parsed.ls_node"
 	lsLinkMessageTopic    = "gobmp.parsed.ls_link"
-	l3vpnMessageTopic     = "gobmp.parsed.l3vpn"
+	// l3vpnMessageTopic     = "gobmp.parsed.l3vpn"
+	l3vpnMessageV4Topic   = "gobmp.parsed.l3vpnv4"
+	l3vpnMessageV6Topic   = "gobmp.parsed.l3vpnv6"
 	lsPrefixMessageTopic  = "gobmp.parsed.ls_prefix"
 	lsSRv6SIDMessageTopic = "gobmp.parsed.ls_srv6_sid"
 	evpnMessageTopic      = "gobmp.parsed.evpn"
 )
 
 var (
-	topics = map[string]int{
-		peerTopic:             bmp.PeerStateChangeMsg,
-		unicastMessageTopic:   bmp.UnicastPrefixMsg,
+	topics = map[string]dbclient.CollectionType{
+		peerTopic: bmp.PeerStateChangeMsg,
+		// unicastMessageTopic:   bmp.UnicastPrefixMsg,
+		unicastMessageV4Topic: bmp.UnicastPrefixV4Msg,
+		unicastMessageV6Topic: bmp.UnicastPrefixV6Msg,
 		lsNodeMessageTopic:    bmp.LSNodeMsg,
 		lsLinkMessageTopic:    bmp.LSLinkMsg,
-		l3vpnMessageTopic:     bmp.L3VPNMsg,
+		// l3vpnMessageTopic:     bmp.L3VPNMsg,
+		l3vpnMessageV4Topic:   bmp.L3VPNV4Msg,
+		l3vpnMessageV6Topic:   bmp.L3VPNV6Msg,
 		lsPrefixMessageTopic:  bmp.LSPrefixMsg,
 		lsSRv6SIDMessageTopic: bmp.LSSRv6SIDMsg,
 		evpnMessageTopic:      bmp.EVPNMsg,
@@ -93,7 +101,7 @@ func (k *kafka) Stop() error {
 	return nil
 }
 
-func (k *kafka) topicReader(topicType int, topicName string) {
+func (k *kafka) topicReader(topicType dbclient.CollectionType, topicName string) {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	for {
 		partitions, _ := k.master.Partitions(topicName)

@@ -1,6 +1,8 @@
 package kafkamessenger
 
 import (
+	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -65,7 +67,7 @@ func NewKafkaMessenger(kafkaSrv string, db dbclient.DB) (Srv, error) {
 	}
 
 	config := sarama.NewConfig()
-	config.ClientID = "gobmp-consumer"
+	config.ClientID = "gobmp-producer" + "_" + strconv.Itoa(rand.Intn(1000))
 	config.Consumer.Return.Errors = true
 	config.Version = sarama.V0_11_0_0
 
@@ -104,11 +106,21 @@ func (k *kafka) Stop() error {
 func (k *kafka) topicReader(topicType dbclient.CollectionType, topicName string) {
 	ticker := time.NewTicker(200 * time.Millisecond)
 	for {
-		partitions, _ := k.master.Partitions(topicName)
-		// this only consumes partition no 1, you would probably want to consume all partitions
+		// Loop until either a topic becomes available at the broker or stop signal is received
+		partitions, err := k.master.Partitions(topicName)
+		if nil != err {
+			glog.Errorf("fail to get partitions for the topic %s with error: %+v", topicName, err)
+			select {
+			case <-ticker.C:
+			case <-k.stopCh:
+				return
+			}
+			continue
+		}
+		// Loop until either a topic's partition becomes consumable or stop signal is received
 		consumer, err := k.master.ConsumePartition(topicName, partitions[0], sarama.OffsetOldest)
 		if nil != err {
-			glog.Infof("Consumer error: %+v", err)
+			glog.Errorf("fail to consume partition for the topic %s with error: %+v", topicName, err)
 			select {
 			case <-ticker.C:
 			case <-k.stopCh:

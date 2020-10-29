@@ -200,6 +200,8 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsSRv6SIDArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
+	case bmp.L3VPNV4Msg:
+	case bmp.L3VPNV6Msg:
 		obj, ok = o.(*l3VPNArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover l3VPNArangoMessage from DBRecord interface")
@@ -209,6 +211,10 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*l3VPNArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*l3VPNArangoMessage).Action
 	case bmp.UnicastPrefixMsg:
+		fallthrough
+	case bmp.UnicastPrefixV4Msg:
+		fallthrough
+	case bmp.UnicastPrefixV6Msg:
 		obj, ok = o.(*unicastPrefixArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover unicastPrefixArangoMessage from DBRecord interface")

@@ -50,7 +50,7 @@ spec:
             - "jalapeno"
             - --notify-event
             - "true"
-          image: docker.io/sbezverk/topology:wip
+          image: docker.io/sbezverk/topology:wip_af
           imagePullPolicy: Always
           name: topology
           ports:

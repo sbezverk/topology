@@ -12,13 +12,13 @@ import (
 
 // Define constants for each topic name
 const (
-	peerTopic = "gobmp.parsed.peer"
-	// unicastMessageTopic   = "gobmp.parsed.unicast_prefix"
+	peerTopic             = "gobmp.parsed.peer"
+	unicastMessageTopic   = "gobmp.parsed.unicast_prefix"
 	unicastMessageV4Topic = "gobmp.parsed.unicast_prefix_v4"
 	unicastMessageV6Topic = "gobmp.parsed.unicast_prefix_v6"
 	lsNodeMessageTopic    = "gobmp.parsed.ls_node"
 	lsLinkMessageTopic    = "gobmp.parsed.ls_link"
-	// l3vpnMessageTopic     = "gobmp.parsed.l3vpn"
+	l3vpnMessageTopic     = "gobmp.parsed.l3vpn"
 	l3vpnMessageV4Topic   = "gobmp.parsed.l3vpn_v4"
 	l3vpnMessageV6Topic   = "gobmp.parsed.l3vpn_v6"
 	lsPrefixMessageTopic  = "gobmp.parsed.ls_prefix"
@@ -28,13 +28,13 @@ const (
 
 var (
 	topics = map[string]dbclient.CollectionType{
-		peerTopic: bmp.PeerStateChangeMsg,
-		// unicastMessageTopic:   bmp.UnicastPrefixMsg,
+		peerTopic:             bmp.PeerStateChangeMsg,
+		unicastMessageTopic:   bmp.UnicastPrefixMsg,
 		unicastMessageV4Topic: bmp.UnicastPrefixV4Msg,
 		unicastMessageV6Topic: bmp.UnicastPrefixV6Msg,
 		lsNodeMessageTopic:    bmp.LSNodeMsg,
 		lsLinkMessageTopic:    bmp.LSLinkMsg,
-		// l3vpnMessageTopic:     bmp.L3VPNMsg,
+		l3vpnMessageTopic:     bmp.L3VPNMsg,
 		l3vpnMessageV4Topic:   bmp.L3VPNV4Msg,
 		l3vpnMessageV6Topic:   bmp.L3VPNV6Msg,
 		lsPrefixMessageTopic:  bmp.LSPrefixMsg,

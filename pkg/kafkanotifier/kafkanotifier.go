@@ -16,18 +16,18 @@ import (
 
 // Define constants for each topic name
 const (
-	PeerEventTopic = "gobmp.parsed.peer_events"
-	// UnicastPrefixEventTopic = "gobmp.parsed.unicast_prefix_events"
+	PeerEventTopic            = "gobmp.parsed.peer_events"
+	UnicastPrefixEventTopic   = "gobmp.parsed.unicast_prefix_events"
 	UnicastPrefixV4EventTopic = "gobmp.parsed.unicast_prefix_v4_events"
 	UnicastPrefixV6EventTopic = "gobmp.parsed.unicast_prefix_v6_events"
 	LSNodeEventTopic          = "gobmp.parsed.ls_node_events"
 	LSLinkEventTopic          = "gobmp.parsed.ls_link_events"
-	// L3VPNEventTopic         = "gobmp.parsed.l3vpn_events"
-	L3VPNV4EventTopic   = "gobmp.parsed.l3vpn_v4_events"
-	L3VPNV6EventTopic   = "gobmp.parsed.l3vpn_v6_events"
-	LSPrefixEventTopic  = "gobmp.parsed.ls_prefix_events"
-	LSSRv6SIDEventTopic = "gobmp.parsed.ls_srv6_sid_events"
-	EVPNEventTopic      = "gobmp.parsed.evpn_events"
+	L3VPNEventTopic           = "gobmp.parsed.l3vpn_events"
+	L3VPNV4EventTopic         = "gobmp.parsed.l3vpn_v4_events"
+	L3VPNV6EventTopic         = "gobmp.parsed.l3vpn_v6_events"
+	LSPrefixEventTopic        = "gobmp.parsed.ls_prefix_events"
+	LSSRv6SIDEventTopic       = "gobmp.parsed.ls_srv6_sid_events"
+	EVPNEventTopic            = "gobmp.parsed.evpn_events"
 )
 
 var (
@@ -40,12 +40,12 @@ var (
 	// initialization is done as a part of NewKafkaPublisher func.
 	topicNames = []string{
 		PeerEventTopic,
-		// UnicastPrefixEventTopic,
+		UnicastPrefixEventTopic,
 		UnicastPrefixV4EventTopic,
 		UnicastPrefixV6EventTopic,
 		LSNodeEventTopic,
 		LSLinkEventTopic,
-		// L3VPNEventTopic,
+		L3VPNEventTopic,
 		L3VPNV4EventTopic,
 		L3VPNV6EventTopic,
 		LSPrefixEventTopic,
@@ -75,6 +75,8 @@ func (n *notifier) EventNotification(msg *EventMessage) error {
 	switch msg.TopicType {
 	case bmp.PeerStateChangeMsg:
 		return n.triggerNotification(PeerEventTopic, msg)
+	case bmp.UnicastPrefixMsg:
+		return n.triggerNotification(UnicastPrefixEventTopic, msg)
 	case bmp.UnicastPrefixV4Msg:
 		return n.triggerNotification(UnicastPrefixV4EventTopic, msg)
 	case bmp.UnicastPrefixV6Msg:
@@ -83,6 +85,8 @@ func (n *notifier) EventNotification(msg *EventMessage) error {
 		return n.triggerNotification(LSNodeEventTopic, msg)
 	case bmp.LSLinkMsg:
 		return n.triggerNotification(LSLinkEventTopic, msg)
+	case bmp.L3VPNMsg:
+		return n.triggerNotification(L3VPNEventTopic, msg)
 	case bmp.L3VPNV4Msg:
 		return n.triggerNotification(L3VPNV4EventTopic, msg)
 	case bmp.L3VPNV6Msg:

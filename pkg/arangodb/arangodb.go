@@ -23,8 +23,10 @@ var (
 		dbclient.LSNode:          {name: "LSNode_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
 		dbclient.LSPrefix:        {name: "LSPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.LSSRv6SID:       {name: "LSSRv6SID_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.L3VPN:           {name: "L3VPN_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.L3VPNV4:         {name: "L3VPNV4_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.L3VPNV6:         {name: "L3VPNV6_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.UnicastPrefix:   {name: "UnicastPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.UnicastPrefixV4: {name: "UnicastPrefixV4_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.UnicastPrefixV6: {name: "UnicastPrefixV6_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 	}
@@ -102,14 +104,14 @@ func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType dbcl
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.LSSRv6SIDMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
-			//		case bmp.L3VPNMsg:
-			//			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.L3VPNMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.L3VPNV4Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.L3VPNV6Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
-			//		case bmp.UnicastPrefixMsg:
-			//			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.UnicastPrefixMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.UnicastPrefixV4Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.UnicastPrefixV6Msg:

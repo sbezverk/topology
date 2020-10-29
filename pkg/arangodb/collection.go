@@ -289,6 +289,8 @@ func newDBRecord(msgData []byte, collectionType dbclient.CollectionType) (DBReco
 			return nil, err
 		}
 		return &o, nil
+	case bmp.L3VPNMsg:
+		fallthrough
 	case bmp.L3VPNV4Msg:
 		fallthrough
 	case bmp.L3VPNV6Msg:
@@ -297,6 +299,8 @@ func newDBRecord(msgData []byte, collectionType dbclient.CollectionType) (DBReco
 			return nil, err
 		}
 		return &o, nil
+	case bmp.UnicastPrefixMsg:
+		fallthrough
 	case bmp.UnicastPrefixV4Msg:
 		fallthrough
 	case bmp.UnicastPrefixV6Msg:

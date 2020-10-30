@@ -200,7 +200,9 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsSRv6SIDArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
+		fallthrough
 	case bmp.L3VPNV4Msg:
+		fallthrough
 	case bmp.L3VPNV6Msg:
 		obj, ok = o.(*l3VPNArangoMessage)
 		if !ok {

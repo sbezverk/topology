@@ -36,7 +36,7 @@ func (m *mockDB) GetInterface() dbclient.DB {
 	return m.DB
 }
 
-func (m *mockDB) StoreMessage(msgType int, msg []byte) error {
+func (m *mockDB) StoreMessage(msgType dbclient.CollectionType, msg []byte) error {
 	// switch msgType {
 	// case bmp.PeerStateChangeMsg:
 	// 	p, ok := msg.(*message.PeerStateChange)

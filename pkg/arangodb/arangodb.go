@@ -16,6 +16,22 @@ const (
 	concurrentWorkers = 1024
 )
 
+var (
+	collections = map[dbclient.CollectionType]*collectionProperties{
+		dbclient.PeerStateChange: {name: "Node_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSLink:          {name: "LSLink_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSNode:          {name: "LSNode_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSPrefix:        {name: "LSPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSSRv6SID:       {name: "LSSRv6SID_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.L3VPN:           {name: "L3VPN_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.L3VPNV4:         {name: "L3VPNV4_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.L3VPNV6:         {name: "L3VPNV6_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.UnicastPrefix:   {name: "UnicastPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.UnicastPrefixV4: {name: "UnicastPrefixV4_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.UnicastPrefixV6: {name: "UnicastPrefixV6_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+	}
+)
+
 // collectionProperties defines a collection specific properties
 // TODO this information should be configurable without recompiling code.
 type collectionProperties struct {
@@ -24,23 +40,11 @@ type collectionProperties struct {
 	options  *driver.CreateCollectionOptions
 }
 
-var (
-	collections = map[int]*collectionProperties{
-		bmp.PeerStateChangeMsg: {name: "Node_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		bmp.LSLinkMsg:          {name: "LSLink_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		bmp.LSNodeMsg:          {name: "LSNode_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
-		bmp.LSPrefixMsg:        {name: "LSPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		bmp.LSSRv6SIDMsg:       {name: "LSSRv6SID_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		bmp.L3VPNMsg:           {name: "L3VPN_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		bmp.UnicastPrefixMsg:   {name: "UnicastPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-	}
-)
-
 type arangoDB struct {
 	dbclient.DB
 	*ArangoConn
 	stop             chan struct{}
-	collections      map[int]*collection
+	collections      map[dbclient.CollectionType]*collection
 	notifyCompletion bool
 	notifier         kafkanotifier.Event
 }
@@ -61,7 +65,7 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string, notifier kafkanotifier
 	}
 	arango := &arangoDB{
 		stop:        make(chan struct{}),
-		collections: make(map[int]*collection),
+		collections: make(map[dbclient.CollectionType]*collection),
 	}
 	arango.DB = arango
 	arango.ArangoConn = arangoConn
@@ -79,7 +83,7 @@ func NewDBSrvClient(arangoSrv, user, pass, dbname string, notifier kafkanotifier
 	return arango, nil
 }
 
-func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType int) error {
+func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType dbclient.CollectionType) error {
 	if _, ok := a.collections[collectionType]; !ok {
 		a.collections[collectionType] = &collection{
 			queue:          make(chan *queueMsg),
@@ -102,7 +106,15 @@ func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType int)
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.L3VPNMsg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.L3VPNV4Msg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.L3VPNV6Msg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.UnicastPrefixMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.UnicastPrefixV4Msg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.UnicastPrefixV6Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		default:
 			return fmt.Errorf("unknown collection type %d", collectionType)
@@ -180,7 +192,7 @@ func (a *arangoDB) GetArangoDBInterface() *ArangoConn {
 	return a.ArangoConn
 }
 
-func (a *arangoDB) StoreMessage(msgType int, msg []byte) error {
+func (a *arangoDB) StoreMessage(msgType dbclient.CollectionType, msg []byte) error {
 	if t, ok := a.collections[msgType]; ok {
 		t.queue <- &queueMsg{
 			msgType: msgType,

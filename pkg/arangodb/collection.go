@@ -8,6 +8,7 @@ import (
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
 	"github.com/sbezverk/gobmp/pkg/bmp"
+	"github.com/sbezverk/topology/pkg/dbclient"
 	"github.com/sbezverk/topology/pkg/kafkanotifier"
 	"go.uber.org/atomic"
 )
@@ -23,7 +24,7 @@ type result struct {
 }
 
 type queueMsg struct {
-	msgType int
+	msgType dbclient.CollectionType
 	msgData []byte
 }
 
@@ -38,7 +39,7 @@ type collection struct {
 	stop            chan struct{}
 	topicCollection driver.Collection
 	//	name            string
-	collectionType int // TODO Add enumeration by bmp message type
+	collectionType dbclient.CollectionType
 	//	isVertex        bool // If set to true the collection is created as a vertex collection, required to be able to build edge topologies
 	handler    func()
 	arango     *arangoDB
@@ -199,6 +200,10 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*lsSRv6SIDArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*lsSRv6SIDArangoMessage).Action
 	case bmp.L3VPNMsg:
+		fallthrough
+	case bmp.L3VPNV4Msg:
+		fallthrough
+	case bmp.L3VPNV6Msg:
 		obj, ok = o.(*l3VPNArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover l3VPNArangoMessage from DBRecord interface")
@@ -208,6 +213,10 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*l3VPNArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*l3VPNArangoMessage).Action
 	case bmp.UnicastPrefixMsg:
+		fallthrough
+	case bmp.UnicastPrefixV4Msg:
+		fallthrough
+	case bmp.UnicastPrefixV6Msg:
 		obj, ok = o.(*unicastPrefixArangoMessage)
 		if !ok {
 			err = fmt.Errorf("failed to recover unicastPrefixArangoMessage from DBRecord interface")
@@ -250,7 +259,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	return
 }
 
-func newDBRecord(msgData []byte, collectionType int) (DBRecord, error) {
+func newDBRecord(msgData []byte, collectionType dbclient.CollectionType) (DBRecord, error) {
 	switch collectionType {
 	case bmp.PeerStateChangeMsg:
 		var o peerStateChangeArangoMessage
@@ -283,12 +292,20 @@ func newDBRecord(msgData []byte, collectionType int) (DBRecord, error) {
 		}
 		return &o, nil
 	case bmp.L3VPNMsg:
+		fallthrough
+	case bmp.L3VPNV4Msg:
+		fallthrough
+	case bmp.L3VPNV6Msg:
 		var o l3VPNArangoMessage
 		if err := json.Unmarshal(msgData, &o); err != nil {
 			return nil, err
 		}
 		return &o, nil
 	case bmp.UnicastPrefixMsg:
+		fallthrough
+	case bmp.UnicastPrefixV4Msg:
+		fallthrough
+	case bmp.UnicastPrefixV6Msg:
 		var o unicastPrefixArangoMessage
 		if err := json.Unmarshal(msgData, &o); err != nil {
 			return nil, err

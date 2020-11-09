@@ -9,3 +9,4 @@ require (
 	github.com/sbezverk/gobmp v0.0.1-beta.0.20201030174639-17b4b6d78a7b
 	go.uber.org/atomic v1.7.0
 )
+replace github.com/sbezverk/gobmp => ../gobmp

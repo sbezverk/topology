@@ -29,6 +29,9 @@ var (
 		dbclient.UnicastPrefix:   {name: "UnicastPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.UnicastPrefixV4: {name: "UnicastPrefixV4_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.UnicastPrefixV6: {name: "UnicastPrefixV6_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.SRPolicy:        {name: "SRPolicy_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.SRPolicyV4:      {name: "SRPolicyV4_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.SRPolicyV6:      {name: "SRPolicyV6_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 	}
 )
 
@@ -115,6 +118,12 @@ func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType dbcl
 		case bmp.UnicastPrefixV4Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		case bmp.UnicastPrefixV6Msg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.SRPolicyMsg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.SRPolicyV4Msg:
+			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
+		case bmp.SRPolicyV6Msg:
 			a.collections[collectionType].handler = a.collections[collectionType].genericHandler
 		default:
 			return fmt.Errorf("unknown collection type %d", collectionType)

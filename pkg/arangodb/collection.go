@@ -225,6 +225,19 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*unicastPrefixArangoMessage).Key = k
 		obj.(*unicastPrefixArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*unicastPrefixArangoMessage).Action
+	case bmp.SRPolicyMsg:
+		fallthrough
+	case bmp.SRPolicyV4Msg:
+		fallthrough
+	case bmp.SRPolicyV6Msg:
+		obj, ok = o.(*srPolicyArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover SRPolicy from DBRecord interface")
+			return
+		}
+		obj.(*srPolicyArangoMessage).Key = k
+		obj.(*srPolicyArangoMessage).ID = c.properties.name + "/" + k
+		action = obj.(*srPolicyArangoMessage).Action
 	default:
 		err = fmt.Errorf("unknown collection type %d", c.collectionType)
 		return
@@ -307,6 +320,16 @@ func newDBRecord(msgData []byte, collectionType dbclient.CollectionType) (DBReco
 		fallthrough
 	case bmp.UnicastPrefixV6Msg:
 		var o unicastPrefixArangoMessage
+		if err := json.Unmarshal(msgData, &o); err != nil {
+			return nil, err
+		}
+		return &o, nil
+	case bmp.SRPolicyMsg:
+		fallthrough
+	case bmp.SRPolicyV4Msg:
+		fallthrough
+	case bmp.SRPolicyV6Msg:
+		var o srPolicyArangoMessage
 		if err := json.Unmarshal(msgData, &o); err != nil {
 			return nil, err
 		}

@@ -148,7 +148,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		if err == nil {
 			c.stats.total.Add(1)
 		}
-		glog.V(5).Infof("done key: %s, type: %d total messages: %s", k, c.collectionType, c.stats.total.String())
+		glog.V(6).Infof("done key: %s, type: %d total messages: %s", k, c.collectionType, c.stats.total.String())
 	}()
 	ctx := context.TODO()
 	var obj interface{}

@@ -38,10 +38,10 @@ type collection struct {
 	stats           *stats
 	stop            chan struct{}
 	topicCollection driver.Collection
-	collectionType dbclient.CollectionType
-	handler    func()
-	arango     *arangoDB
-	properties *collectionProperties
+	collectionType  dbclient.CollectionType
+	handler         func()
+	arango          *arangoDB
+	properties      *collectionProperties
 }
 
 func (c *collection) processError(r *result) bool {
@@ -236,6 +236,19 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 		obj.(*srPolicyArangoMessage).Key = k
 		obj.(*srPolicyArangoMessage).ID = c.properties.name + "/" + k
 		action = obj.(*srPolicyArangoMessage).Action
+	case bmp.FlowspecMsg:
+		fallthrough
+	case bmp.FlowspecV4Msg:
+		fallthrough
+	case bmp.FlowspecV6Msg:
+		obj, ok = o.(*flowspecArangoMessage)
+		if !ok {
+			err = fmt.Errorf("failed to recover Flowspec from DBRecord interface")
+			return
+		}
+		obj.(*flowspecArangoMessage).Key = k
+		obj.(*flowspecArangoMessage).ID = c.properties.name + "/" + k
+		action = obj.(*flowspecArangoMessage).Action
 	default:
 		err = fmt.Errorf("unknown collection type %d", c.collectionType)
 		return

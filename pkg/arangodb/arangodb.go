@@ -19,9 +19,9 @@ const (
 var (
 	collections = map[dbclient.CollectionType]*collectionProperties{
 		dbclient.PeerStateChange: {name: "Node_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
-		dbclient.LSLink:          {name: "LSLink_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSLink:          {name: "LSLink_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
 		dbclient.LSNode:          {name: "LSNode_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
-		dbclient.LSPrefix:        {name: "LSPrefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
+		dbclient.LSPrefix:        {name: "LSPrefix_Test", isVertex: true, options: &driver.CreateCollectionOptions{}},
 		dbclient.LSSRv6SID:       {name: "LSSRv6SID_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.L3VPN:           {name: "L3VPN_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
 		dbclient.L3VPNV4:         {name: "L3VPNV4_Prefix_Test", isVertex: false, options: &driver.CreateCollectionOptions{}},
@@ -140,26 +140,36 @@ func (a *arangoDB) ensureCollection(p *collectionProperties, collectionType dbcl
 	}
 	var ci driver.Collection
 	var err error
-	// There are two possible collection types, base type and vertex type
-	if !a.collections[collectionType].properties.isVertex {
-		ci, err = a.db.Collection(context.TODO(), a.collections[collectionType].properties.name)
-		if err != nil {
-			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
-				return err
-			}
-			ci, err = a.db.CreateCollection(context.TODO(), a.collections[collectionType].properties.name, a.collections[collectionType].properties.options)
-		}
-	} else {
+	// There are two possible collection types, base type and edge type
+	// for Edge type a collection must be created as a Vertex collection
+	if a.collections[collectionType].properties.isVertex {
 		graph, err := a.ensureGraph(a.collections[collectionType].properties.name)
 		if err != nil {
 			return err
 		}
+		// Check if the vertex collection already exists
 		ci, err = graph.VertexCollection(context.TODO(), a.collections[collectionType].properties.name)
 		if err != nil {
 			if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
 				return err
 			}
+			// Collection does not exist, attempting to create it
 			ci, err = graph.CreateVertexCollection(context.TODO(), a.collections[collectionType].properties.name)
+			if err != nil {
+				return err
+			}
+		}
+		a.collections[collectionType].topicCollection = ci
+		return nil
+	}
+	ci, err = a.db.Collection(context.TODO(), a.collections[collectionType].properties.name)
+	if err != nil {
+		if !driver.IsArangoErrorWithErrorNum(err, driver.ErrArangoDataSourceNotFound) {
+			return err
+		}
+		ci, err = a.db.CreateCollection(context.TODO(), a.collections[collectionType].properties.name, a.collections[collectionType].properties.options)
+		if err != nil {
+			return err
 		}
 	}
 	a.collections[collectionType].topicCollection = ci

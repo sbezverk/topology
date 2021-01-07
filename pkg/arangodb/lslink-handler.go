@@ -27,11 +27,11 @@ func (l *lsLinkArangoMessage) MakeKey() string {
 		localIP = "unknown-mt-id"
 		remoteIP = "unknown-mt-id"
 	}
-	if len(l.LocalLinkIP) != 0 {
-		localIP = l.LocalLinkIP[0]
+	if l.LocalLinkIP != "" {
+		localIP = l.LocalLinkIP
 	}
-	if len(l.RemoteLinkIP) != 0 {
-		remoteIP = l.RemoteLinkIP[0]
+	if l.RemoteLinkIP != "" {
+		remoteIP = l.RemoteLinkIP
 	}
 	localID = strconv.Itoa(int(l.LocalLinkID))
 	remoteID = strconv.Itoa(int(l.RemoteLinkID))

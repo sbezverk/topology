@@ -44,10 +44,16 @@ type collection struct {
 	properties      *collectionProperties
 }
 
+const (
+	// ErrArangoGraphNotFound defines Arango DB error to return when requested Gra[h is not found
+	// This error is not defined by ArangoDB go driver module.
+	ErrArangoGraphNotFound = 1924
+)
+
 func (c *collection) processError(r *result) bool {
 	switch {
 	// Condition when a collection was deleted while the topology was running
-	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound):
+	case driver.IsArangoErrorWithErrorNum(r.err, driver.ErrArangoDataSourceNotFound, ErrArangoGraphNotFound):
 		if err := c.arango.ensureCollection(c.properties, c.collectionType); err != nil {
 			return true
 		}

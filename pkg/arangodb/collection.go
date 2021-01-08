@@ -132,14 +132,16 @@ func (c *collection) genericHandler() {
 				continue
 			}
 			if c.arango.notifyCompletion && c.arango.notifier != nil {
-				if err := c.arango.notifier.EventNotification(&kafkanotifier.EventMessage{
+				m := &kafkanotifier.EventMessage{
 					TopicType: c.collectionType,
 					Key:       r.key,
 					ID:        c.properties.name + "/" + r.key,
 					Action:    r.action,
-				}); err != nil {
+				}
+				if err := c.arango.notifier.EventNotification(m); err != nil {
 					glog.Errorf("genericWorker for key: %s failed to send notification with error: %+v", r.key, r.err)
 				}
+				glog.Infof("><SB> Notification: %+v", m)
 			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it

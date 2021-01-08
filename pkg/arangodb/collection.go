@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/golang/glog"
@@ -18,6 +19,7 @@ type DBRecord interface {
 }
 
 type result struct {
+	object DBRecord
 	key    string
 	action string
 	err    error
@@ -67,6 +69,10 @@ func (c *collection) processError(r *result) bool {
 	}
 }
 
+var (
+	bacllogCheckInterval = time.Millisecond * 500
+)
+
 func (c *collection) genericHandler() {
 	glog.Infof("Starting handler for type: %d", c.collectionType)
 	// keyStore is used to track duplicate key in messages, duplicate key means there is already in processing
@@ -78,9 +84,11 @@ func (c *collection) genericHandler() {
 	// conflicting database changes, each go routine processes a message with the unique key.
 	tokens := make(chan struct{}, concurrentWorkers)
 	done := make(chan *result, concurrentWorkers*2)
+	backlogTicker := time.NewTicker(bacllogCheckInterval)
 	for {
 		select {
 		case m := <-c.queue:
+			backlogTicker.Reset(bacllogCheckInterval)
 			o, err := newDBRecord(m.msgData, c.collectionType)
 			if err != nil {
 				glog.Errorf("failed to unmarshal message of type %d with error: %+v", c.collectionType, err)
@@ -104,12 +112,24 @@ func (c *collection) genericHandler() {
 			keyStore[k] = true
 			go c.genericWorker(k, o, done, tokens)
 		case r := <-done:
+			backlogTicker.Reset(bacllogCheckInterval)
 			if r.err != nil {
-				// Error was encountered during processing of the key
+				// Error was encountered during processing of the key, attempting to correct the error condition
+				// and pushing failed DBObject to the backlog queue
 				if c.processError(r) {
 					glog.Errorf("genericWorker for key: %s reported a fatal error: %+v", r.key, r.err)
+				} else {
+					glog.Errorf("genericWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
 				}
-				glog.Errorf("genericWorker for key: %s reported a non fatal error: %+v", r.key, r.err)
+				glog.Infof("Pushing key: %s to the backlog after the failure", r.key)
+				b, ok := backlog[r.key]
+				if !ok {
+					b = newFIFO()
+				}
+				// Saving message in the backlog
+				b.Push(r.object)
+				backlog[r.key] = b
+				continue
 			}
 			if c.arango.notifyCompletion && c.arango.notifier != nil {
 				if err := c.arango.notifier.EventNotification(&kafkanotifier.EventMessage{
@@ -138,7 +158,25 @@ func (c *collection) genericHandler() {
 				delete(backlog, r.key)
 			}
 		case <-c.stop:
+			backlogTicker.Stop()
 			return
+		case <-backlogTicker.C:
+			// If loop is idle for backlogCheckInterval, trying to process any outstanding items stored in the backlog
+			for key, b := range backlog {
+				glog.Infof("Extracted key %s from backlog (backlogTicker)", key)
+				bo := b.Pop()
+				if bo != nil {
+					tokens <- struct{}{}
+					keyStore[key] = true
+					go c.genericWorker(key, bo.(DBRecord), done, tokens)
+				}
+				// If Backlog for a specific key is empty, remove it from the backlog
+				if b.Len() == 0 {
+					delete(backlog, key)
+				}
+				// Processing a single item per backlogTicker cycle
+				break
+			}
 		}
 	}
 }
@@ -148,7 +186,7 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 	var action string
 	defer func() {
 		<-tokens
-		done <- &result{key: k, action: action, err: err}
+		done <- &result{object: o, key: k, action: action, err: err}
 		if err == nil {
 			c.stats.total.Add(1)
 		}

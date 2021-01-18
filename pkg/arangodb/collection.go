@@ -141,7 +141,6 @@ func (c *collection) genericHandler() {
 				if err := c.arango.notifier.EventNotification(m); err != nil {
 					glog.Errorf("genericWorker for key: %s failed to send notification with error: %+v", r.key, r.err)
 				}
-				glog.Infof("><SB> Notification: %+v", m)
 			}
 			delete(keyStore, r.key)
 			// Check if there an entry for this key in the backlog, if there is, retrieve it and process it

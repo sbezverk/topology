@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -24,9 +23,9 @@ import (
 
 const (
 	// userFile defines the name of file containing base64 encoded user name
-	userFile = "./.username"
+	userFile = "./credentials/.username"
 	// passFile defines the name of file containing base64 encoded password
-	passFile = "./.password"
+	passFile = "./credentials/.password"
 	// MAXUSERNAME defines maximum length of ArangoDB user name
 	MAXUSERNAME = 256
 	// MAXPASS defines maximum length of ArangoDB password
@@ -169,7 +168,7 @@ func validateDBCreds() error {
 		}
 		return fmt.Errorf("failed to access %s with error: %+v and no username and password provided via command line arguments", userFile, err)
 	}
-	p, err := readAndDecode(passFile, MAXUSERNAME)
+	p, err := readAndDecode(passFile, MAXPASS)
 	if err != nil {
 		if dbUser != "" && dbPass != "" {
 			return nil
@@ -187,18 +186,19 @@ func readAndDecode(fn string, max int) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	b := make([]byte, max)
+	l, err := f.Stat()
+	if err != nil {
+		return "", err
+	}
+	b := make([]byte, int(l.Size()))
 	n, err := io.ReadFull(f, b)
 	if err != nil {
 		return "", err
 	}
-	b = b[:n]
-	db := make([]byte, max)
-	n, err = base64.StdEncoding.Decode(db, b)
-	if err != nil {
-		return "", err
+	if n > max {
+		return "", fmt.Errorf("length of data %d exceeds maximum acceptable length: %d", n, max)
 	}
-	db = db[:n]
+	b = b[:n]
 
-	return string(db), nil
+	return string(b), nil
 }

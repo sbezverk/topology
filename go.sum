@@ -80,6 +80,8 @@ github.com/rs/zerolog v1.19.0/go.mod h1:IzD0RJ65iWH0w97OQQebJEvTZYvsCUm9WVLWBQrJ
 github.com/sbezverk/gobmp v0.0.1-beta.0.20201206165019-4881ac927333/go.mod h1:UUBU2hfxyZhQMfH1+uCi7ddGPiuiKGiizrZnpeIKyvo=
 github.com/sbezverk/gobmp v0.0.1-beta.0.20210118182608-9eb4600cfbbc h1:0/5dKzuG6LtoOf8tn+Ks6k2oDXdO/TKMDL477g1XW00=
 github.com/sbezverk/gobmp v0.0.1-beta.0.20210118182608-9eb4600cfbbc/go.mod h1:UUBU2hfxyZhQMfH1+uCi7ddGPiuiKGiizrZnpeIKyvo=
+github.com/sbezverk/gobmp v0.0.1-beta.0.20210125022733-d2f3a99d56ad h1:C4ryDOEVT2cu9c4nyuRsHR2eQoecI5b1BqkKyNIFDcI=
+github.com/sbezverk/gobmp v0.0.1-beta.0.20210125022733-d2f3a99d56ad/go.mod h1:UUBU2hfxyZhQMfH1+uCi7ddGPiuiKGiizrZnpeIKyvo=
 github.com/segmentio/kafka-go v0.4.2 h1:QXZ6q9Bu1JkAJQ/CQBb2Av8pFRG8LQ0kWCrLXgQyL8c=
 github.com/segmentio/kafka-go v0.4.2/go.mod h1:Inh7PqOsxmfgasV8InZYKVXWsdjcCq2d9tFV75GLbuM=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

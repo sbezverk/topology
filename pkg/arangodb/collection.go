@@ -31,8 +31,7 @@ type queueMsg struct {
 }
 
 type stats struct {
-	total  atomic.Int64
-	failed atomic.Int64
+	total atomic.Int64
 }
 
 type collection struct {
@@ -308,7 +307,6 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			case driver.IsArangoErrorWithErrorNum(e, driver.ErrArangoUniqueConstraintViolated):
 			default:
 				err = e
-				break
 			}
 			if _, e := c.topicCollection.UpdateDocument(ctx, k, obj); e != nil {
 				err = e
@@ -324,8 +322,6 @@ func (c *collection) genericWorker(k string, o DBRecord, done chan *result, toke
 			}
 		}
 	}
-
-	return
 }
 
 func newDBRecord(msgData []byte, collectionType dbclient.CollectionType) (DBRecord, error) {
